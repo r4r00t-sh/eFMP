@@ -1,0 +1,871 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  DEPT_ADMIN
+  APPROVAL_AUTHORITY
+  SECTION_OFFICER
+  INWARD_DESK
+  DISPATCHER
+  USER
+}
+
+enum FilePriorityCategory {
+  ROUTINE      // Blue - 3 working days per desk, 15 days total
+  URGENT       // Orange - 24 hours per desk, 5 days total
+  IMMEDIATE    // Red - 4 working hours per desk, 24 hours total
+  PROJECT      // Green - 7 working days per desk, variable total
+}
+
+enum FileStatus {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  RETURNED
+  REJECTED
+  ON_HOLD
+  RECALLED
+}
+
+enum PresenceStatus {
+  ACTIVE
+  ABSENT
+  SESSION_TIMEOUT
+}
+
+enum FilePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model Organisation {
+  id          String       @id @default(uuid())
+  name        String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  departments Department[]
+}
+
+model Department {
+  id          String     @id @default(uuid())
+  name        String
+  code        String     @unique
+  organisationId String
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  divisions   Division[]
+  users       User[]
+  files       File[]
+  isInwardDesk Boolean   @default(false) // Marks department as "Inward Desk"
+  desks       Desk[]
+  opinionRequestsFrom OpinionRequest[] @relation("OpinionRequestedFrom")
+  opinionRequestsTo   OpinionRequest[] @relation("OpinionRequestedTo")
+  backFiles   BackFile[]
+}
+
+model Division {
+  id           String     @id @default(uuid())
+  name         String
+  code         String
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  users        User[]
+  files        File[]
+  desks        Desk[]
+  opinionRequestsTo OpinionRequest[] @relation("OpinionRequestedTo")
+}
+
+model User {
+  id           String      @id @default(uuid())
+  username     String      @unique
+  email        String?     // Optional email for notifications
+  name         String
+  passwordHash String
+  role         UserRole    @default(USER)
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  divisionId   String?
+  division     Division?   @relation(fields: [divisionId], references: [id], onDelete: SetNull)
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  filesCreated File[]      @relation("FileCreator")
+  filesAssigned File[]     @relation("FileAssignee")
+  notes        Note[]
+  points       UserPoints?
+  auditLogs    AuditLog[]
+  presence     Presence[]
+  opinionRequestsRequested OpinionRequest[] @relation("OpinionRequestedBy")
+  opinionRequestsResponded OpinionRequest[] @relation("OpinionRespondedBy")
+  opinionNotes OpinionNote[]
+  dispatchProofs DispatchProof[]
+  performanceBadges PerformanceBadge[] @relation("UserBadges")
+  workingHours WorkingHours[]
+  coinTransactions CoinTransaction[]
+  redFlags RedFlag[] @relation("UserRedFlags")
+  linkedBackFiles FileBackFileLink[] @relation("LinkedBy")
+}
+
+model File {
+  id              String      @id @default(uuid())
+  fileNumber      String      @unique
+  subject         String
+  description     String?
+  status          FileStatus  @default(PENDING)
+  priority        FilePriority @default(NORMAL)
+  priorityCategory FilePriorityCategory @default(ROUTINE)
+  departmentId    String
+  department      Department  @relation(fields: [departmentId], references: [id])
+  createdById     String
+  createdBy       User        @relation("FileCreator", fields: [createdById], references: [id])
+  assignedToId    String?
+  assignedTo      User?       @relation("FileAssignee", fields: [assignedToId], references: [id])
+  currentDivisionId String?
+  currentDivision   Division? @relation(fields: [currentDivisionId], references: [id])
+  s3Key           String?     // MinIO object key
+  s3Bucket        String?     // MinIO bucket name
+  
+  // Timing System
+  isRedListed       Boolean     @default(false)
+  redListedAt       DateTime?   // When it was red listed
+  dueDate           DateTime?   // Overall file due date
+  deskDueDate       DateTime?   // Current desk deadline
+  deskArrivalTime   DateTime?   // When file arrived at current desk
+  timeRemaining     Int?        // Seconds remaining at current desk
+  allottedTime      Int?        // Total allotted seconds for this desk
+  timerPercentage   Int?        // 0-100 percentage of time remaining
+  totalProcessingTime Int?      // Total seconds file has been in system
+  
+  // Workflow flags
+  isOnHold          Boolean     @default(false)
+  holdReason        String?
+  isRecalled        Boolean     @default(false)
+  recallReason      String?
+  recalledById      String?
+  isClosed          Boolean     @default(false)
+  closedAt          DateTime?
+  
+  // Desk assignment
+  deskId          String?
+  desk            Desk?       @relation(fields: [deskId], references: [id], onDelete: SetNull)
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  notes           Note[]
+  auditLogs       AuditLog[]
+  routingHistory  FileRouting[]
+  extensionRequests TimeExtensionRequest[]
+  attachments     Attachment[]
+  opinionRequests OpinionRequest[]
+  dispatchProofs  DispatchProof[]
+  coinTransactions CoinTransaction[]
+  redFlags RedFlag[] @relation("FileRedFlags")
+  backFileLinks FileBackFileLink[] @relation("FileBackFileLinks")
+  hasBackFiles Boolean @default(false) // Indicator: file has linked back files
+}
+
+// File Attachments - Support multiple file uploads
+model Attachment {
+  id          String   @id @default(uuid())
+  fileId      String
+  file        File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  
+  filename    String   // Original filename
+  s3Key       String   // MinIO object key
+  s3Bucket    String   // MinIO bucket name
+  mimeType    String   // File MIME type
+  size        Int      // File size in bytes
+  
+  uploadedById String?  // Who uploaded this attachment
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([fileId])
+}
+
+// Time Extension Request - Module 8.3
+model TimeExtensionRequest {
+  id              String   @id @default(uuid())
+  fileId          String
+  file            File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  requestedById   String   // The user requesting extension
+  requestedByName String?  // Cached name for logging
+  reason          String   // Reason dropdown value
+  reasonDetails   String?  // Additional explanation
+  additionalTime  Int      // Requested additional time in seconds
+  
+  // Who should approve (the sender of the file)
+  approverId      String?  // The user who forwarded the file to requester
+  approverName    String?  // Cached name for logging
+  
+  // Approval workflow - simplified: sender approves/denies
+  isApproved      Boolean? // null = pending, true = approved, false = denied
+  approvedAt      DateTime?
+  approvedById    String?
+  approvalRemarks String?
+  
+  status          String   @default("pending") // pending, approved, denied
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([fileId])
+  @@index([requestedById])
+  @@index([approverId])
+}
+
+// System Notification for alerts
+model Notification {
+  id              String   @id @default(uuid())
+  userId          String   // Recipient
+  type            String   // red_list, extension_request, file_received, extension_approved, etc.
+  title           String
+  message         String
+  fileId          String?
+  extensionReqId  String?  // Link to TimeExtensionRequest if applicable
+  isRead          Boolean  @default(false)
+  isDismissed     Boolean  @default(false)
+  priority        String   @default("normal") // low, normal, high, urgent
+  actionRequired  Boolean  @default(false)   // Shows action buttons
+  actionType      String?  // "approve_deny_extension", "request_extension", etc.
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  
+  @@index([userId, isRead])
+  @@index([userId, isDismissed])
+}
+
+// File Action types for routing
+enum FileAction {
+  CREATED
+  FORWARDED
+  APPROVED
+  REJECTED
+  RETURNED_TO_HOST     // Return to originator
+  RETURNED_TO_PREVIOUS // Return one step back
+  ON_HOLD
+  RELEASED_FROM_HOLD
+  RECALLED
+  CONSULTATION_SENT    // Parallel view (opinion requested)
+  CONSULTATION_RETURNED // Opinion returned
+  OPINION_REQUESTED    // Request opinion from other department
+  OPINION_PROVIDED     // Opinion provided by opinion desk
+  DISPATCHED
+  DISPATCH_PREPARED    // Ready for dispatch
+  CLOSED
+}
+
+model FileRouting {
+  id              String     @id @default(uuid())
+  fileId          String
+  file            File       @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  fromUserId      String?
+  toUserId        String?
+  fromDivisionId  String?
+  toDivisionId    String?
+  fromDepartmentId String?
+  toDepartmentId  String?
+  action          FileAction
+  actionString    String?    // Legacy string action for backwards compat
+  remarks         String?
+  timeSpentAtDesk Int?       // Seconds spent at this desk before action
+  wasOverdue      Boolean    @default(false) // Was the file overdue when actioned
+  
+  createdAt       DateTime   @default(now())
+  
+  @@index([fileId])
+  @@index([fromUserId])
+  @@index([toUserId])
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  content   String   @db.Text // Rich text content
+  fileId    String
+  file      File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserPoints {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  basePoints      Int      @default(1000)
+  currentPoints   Int      @default(1000)
+  redListDeductions Int    @default(0)
+  redListCount    Int      @default(0)    // Total redlist files this month
+  monthlyBonus    Int      @default(0)    // Bonus points earned
+  streakMonths    Int      @default(0)    // Months without redlist
+  lastStreakCheck DateTime?
+  lastMonthReset  DateTime?               // Track monthly reset
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// System Settings for configurable thresholds
+model SystemSettings {
+  id                    String   @id @default(uuid())
+  key                   String   @unique
+  value                 String
+  description           String?
+  departmentId          String?  // Null = global, otherwise department-specific
+  updatedById           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+// Points Transaction Log
+model PointsTransaction {
+  id              String   @id @default(uuid())
+  userId          String
+  amount          Int      // Positive for additions, negative for deductions
+  reason          String   // "redlist_penalty", "monthly_bonus", "manual_adjustment"
+  fileId          String?  // Related file if applicable
+  description     String?
+  createdById     String?  // Who made the adjustment (for manual)
+  createdAt       DateTime @default(now())
+  
+  @@index([userId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  entityType String  // "File", "User", etc.
+  entityId  String
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  fileId    String?
+  file      File?    @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  metadata  Json?    // Additional data
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}
+
+model Presence {
+  id            String         @id @default(uuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status        PresenceStatus @default(ACTIVE)
+  lastPing      DateTime       @default(now())
+  loginTime     DateTime?      // When user logged in
+  logoutTime    DateTime?      // When user logged out (if conscious logout)
+  logoutType    String?        // "manual", "session_timeout", null
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([userId])
+  @@index([lastPing])
+  @@index([status])
+}
+
+model Holiday {
+  id        String   @id @default(uuid())
+  date      DateTime @unique
+  name      String
+  isWeekend Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ============================================
+// DOCUMENT MANAGEMENT MODELS
+// ============================================
+
+// Document Version Control - Track all versions of attachments
+model AttachmentVersion {
+  id              String   @id @default(uuid())
+  attachmentId    String   // Reference to the latest attachment
+  originalAttachmentId String // Original attachment this version belongs to
+  versionNumber   Int
+  filename        String
+  s3Key           String
+  s3Bucket        String
+  mimeType        String
+  size            Int
+  uploadedById    String
+  changeDescription String? // What changed in this version
+  isLatest        Boolean  @default(false)
+  checksum        String?  // MD5 hash for integrity check
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([originalAttachmentId])
+  @@index([attachmentId])
+}
+
+// File Templates - Predefined templates for common file types
+model FileTemplate {
+  id              String   @id @default(uuid())
+  name            String
+  code            String   @unique
+  description     String?
+  category        String   // "correspondence", "application", "report", etc.
+  
+  // Default values for new files
+  defaultSubject  String?
+  defaultDescription String? @db.Text
+  defaultPriority FilePriority @default(NORMAL)
+  defaultPriorityCategory FilePriorityCategory @default(ROUTINE)
+  defaultDueDays  Int?     // Number of days until due
+  
+  // Template attachment (optional document template)
+  templateS3Key   String?
+  templateS3Bucket String?
+  templateFilename String?
+  templateMimeType String?
+  
+  // Routing template (who should receive files of this type)
+  defaultDepartmentId String?
+  defaultDivisionId   String?
+  
+  // Access control
+  isActive        Boolean  @default(true)
+  isPublic        Boolean  @default(true) // Available to all departments
+  departmentId    String?  // If not public, which department owns it
+  
+  createdById     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([category])
+  @@index([isActive])
+}
+
+// QR Code Tracking for physical file movement
+model FileQRCode {
+  id              String   @id @default(uuid())
+  fileId          String   @unique
+  qrCodeData      String   // Unique QR code identifier
+  qrCodeImageKey  String?  // S3 key for generated QR code image
+  
+  // Scan tracking
+  lastScannedAt   DateTime?
+  lastScannedById String?
+  scanCount       Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([qrCodeData])
+}
+
+// QR Code Scan Log - Track physical file movements
+model QRCodeScanLog {
+  id              String   @id @default(uuid())
+  qrCodeData      String
+  fileId          String?
+  scannedById     String
+  scannedByName   String?  // Cached name
+  location        String?  // GPS or manual location entry
+  department      String?  // Scanned at which department
+  division        String?  // Scanned at which division
+  remarks         String?
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([qrCodeData])
+  @@index([fileId])
+  @@index([createdAt])
+}
+
+// Report Configurations - Saved report templates
+model ReportConfiguration {
+  id              String   @id @default(uuid())
+  name            String
+  description     String?
+  reportType      String   // "summary", "detailed", "user_performance", "department"
+  
+  // Filter configurations
+  filters         Json?    // { departmentId, dateRange, status, etc. }
+  columns         Json?    // Which columns to include
+  sortBy          String?
+  sortOrder       String?  // "asc" | "desc"
+  
+  // Scheduling
+  isScheduled     Boolean  @default(false)
+  scheduleFrequency String? // "daily", "weekly", "monthly"
+  scheduleDay     Int?     // Day of week (0-6) or month (1-31)
+  scheduleTime    String?  // "09:00"
+  lastRunAt       DateTime?
+  nextRunAt       DateTime?
+  
+  // Recipients for scheduled reports
+  emailRecipients Json?    // Array of email addresses
+  
+  createdById     String
+  departmentId    String?  // Null = available to all
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([createdById])
+  @@index([isScheduled])
+}
+
+// ============================================
+// OPINION/CONSULTATION SYSTEM
+// ============================================
+
+// Opinion Request - Send file for parallel view to other departments
+model OpinionRequest {
+  id              String   @id @default(uuid())
+  fileId          String
+  file            File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  
+  // Source (who requested the opinion)
+  requestedById   String
+  requestedBy     User     @relation("OpinionRequestedBy", fields: [requestedById], references: [id])
+  requestedFromDepartmentId String
+  requestedFromDepartment Department @relation("OpinionRequestedFrom", fields: [requestedFromDepartmentId], references: [id])
+  
+  // Target (who should provide opinion)
+  requestedToDepartmentId String
+  requestedToDepartment   Department @relation("OpinionRequestedTo", fields: [requestedToDepartmentId], references: [id])
+  requestedToDivisionId   String?
+  requestedToDivision     Division?  @relation("OpinionRequestedTo", fields: [requestedToDivisionId], references: [id])
+  requestedToUserId       String?    // Specific user if assigned
+  
+  // Opinion details
+  requestReason   String?  // Why opinion is needed
+  specialPermissionGranted Boolean @default(false) // Can view earlier notes
+  
+  // Opinion response
+  opinionNote    String?  @db.Text // The opinion/response
+  opinionAttachments Json? // Array of S3 keys for supporting documents
+  respondedById   String?
+  respondedBy     User?    @relation("OpinionRespondedBy", fields: [respondedById], references: [id])
+  respondedAt     DateTime?
+  
+  // Status
+  status          String   @default("pending") // pending, responded, returned
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  opinionNotes    OpinionNote[]
+  
+  @@index([fileId])
+  @@index([requestedById])
+  @@index([requestedToDepartmentId])
+  @@index([status])
+}
+
+// Opinion Note - Separate notes for opinions (view-only for opinion desk)
+model OpinionNote {
+  id              String   @id @default(uuid())
+  opinionRequestId String
+  opinionRequest  OpinionRequest @relation(fields: [opinionRequestId], references: [id], onDelete: Cascade)
+  
+  content         String   @db.Text
+  addedById       String
+  addedBy         User     @relation(fields: [addedById], references: [id])
+  
+  // Visibility control
+  isVisibleToRequester Boolean @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([opinionRequestId])
+}
+
+// ============================================
+// DESK/DOCK SYSTEM
+// ============================================
+
+// Desk/Dock - Visual capacity management
+model Desk {
+  id              String   @id @default(uuid())
+  name            String   // e.g., "Desk A", "Desk B", "Cabinet 1"
+  code            String   @unique // e.g., "DESK-A", "CAB-1"
+  description     String?
+  
+  // Capacity settings
+  departmentId    String
+  department      Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  divisionId      String?
+  division        Division? @relation(fields: [divisionId], references: [id], onDelete: SetNull)
+  
+  // Capacity configuration
+  maxFilesPerDay  Int      @default(10) // Configurable files per dock per day
+  currentFileCount Int     @default(0)  // Current files on this desk
+  
+  // Capacity calculation
+  optimumCapacity Int?     // Docks x Files (calculated)
+  capacityUtilizationPercent Float? // Current utilization percentage
+  
+  // Status
+  isActive        Boolean  @default(true)
+  isAutoCreated   Boolean  @default(false) // Auto-created when capacity reached
+  
+  // Visual representation
+  iconType        String?  @default("desk") // "desk", "cabinet", "folder"
+  positionX       Int?     // For visual layout
+  positionY       Int?     // For visual layout
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  files           File[]   // Files assigned to this desk
+  performanceBadges PerformanceBadge[]
+  redFlags RedFlag[]
+  
+  @@index([departmentId])
+  @@index([divisionId])
+  @@index([isActive])
+}
+
+// ============================================
+// DISPATCH WORKFLOW ENHANCEMENTS
+// ============================================
+
+// Dispatch Proof - Upload proof and acknowledgement
+model DispatchProof {
+  id              String   @id @default(uuid())
+  fileId          String
+  file            File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  
+  // Dispatch details
+  dispatchedById  String
+  dispatchedBy    User     @relation(fields: [dispatchedById], references: [id])
+  dispatchDate    DateTime @default(now())
+  dispatchMethod  String   // "post", "email", "hand_delivery", "courier"
+  trackingNumber  String?  // For courier/post
+  
+  // Proof documents
+  proofDocumentS3Key String? // Uploaded proof document
+  acknowledgementS3Key String? // Acknowledgement receipt
+  
+  // External communication
+  recipientName   String?
+  recipientAddress String? @db.Text
+  recipientEmail  String?
+  
+  remarks         String?  @db.Text
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([fileId])
+  @@index([dispatchedById])
+  @@index([dispatchDate])
+}
+
+// ============================================
+// PERFORMANCE BADGES & INCENTIVE SYSTEM
+// ============================================
+
+// Performance Badges - Track user/desk achievements
+model PerformanceBadge {
+  id              String   @id @default(uuid())
+  userId          String?
+  user            User?    @relation("UserBadges", fields: [userId], references: [id], onDelete: Cascade)
+  deskId          String?
+  desk            Desk?    @relation(fields: [deskId], references: [id], onDelete: Cascade)
+  
+  badgeType       String   // "high_volume", "high_momentum", "low_hours", "extended_hours", etc.
+  badgeName       String   // "High Volume Desk", "High Momentum Desk", etc.
+  description     String?
+  
+  // Metrics that earned this badge
+  metricValue     Float?   // The value that triggered the badge
+  threshold       Float?   // The threshold that was exceeded
+  
+  // Status
+  isActive        Boolean  @default(true)
+  awardedAt       DateTime @default(now())
+  expiresAt       DateTime? // If badge has expiration
+  
+  @@index([userId])
+  @@index([deskId])
+  @@index([badgeType])
+  @@index([isActive])
+}
+
+// Working Hours Tracking
+model WorkingHours {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  date            DateTime @default(now())
+  hoursWorked     Float    // Hours worked on this date
+  hoursLogged     Float?   // Manually logged hours
+  isLogged        Boolean  @default(false) // Whether hours were manually logged
+  
+  // Calculated from file processing activity
+  filesProcessed  Int      @default(0)
+  filesCreated    Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@index([date])
+}
+
+// Coins/Points System (extends existing UserPoints)
+// Coins are awarded for performance
+model CoinTransaction {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  amount          Int      // Positive for earned, negative for deductions
+  balanceAfter    Int      // Balance after this transaction
+  
+  transactionType String   // "file_processed_optimum", "excess_files", "red_flag_deduction", "bonus", etc.
+  description     String?
+  
+  // Related entities
+  fileId          String?
+  file            File?    @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([userId])
+  @@index([fileId])
+  @@index([transactionType])
+  @@index([createdAt])
+}
+
+// Red Flags - Track underperformance
+model RedFlag {
+  id              String   @id @default(uuid())
+  userId          String?
+  user            User?    @relation("UserRedFlags", fields: [userId], references: [id], onDelete: Cascade)
+  deskId          String?
+  desk            Desk?    @relation(fields: [deskId], references: [id], onDelete: Cascade)
+  
+  flagType        String   // "low_hours", "underperformance", "deviation", "red_listed_files", etc.
+  severity        String   @default("medium") // "low", "medium", "high", "critical"
+  description     String?
+  
+  // Related entities
+  fileId          String?
+  file            File?    @relation("FileRedFlags", fields: [fileId], references: [id], onDelete: SetNull)
+  
+  isResolved      Boolean  @default(false)
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  resolutionNote  String?
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([userId])
+  @@index([deskId])
+  @@index([fileId])
+  @@index([flagType])
+  @@index([isResolved])
+}
+
+// System Configuration for Performance Metrics
+model PerformanceConfig {
+  id              String   @id @default(uuid())
+  key             String   @unique
+  value           Json     // Configuration value (can be number, object, array, etc.)
+  description     String?
+  
+  // Who can modify
+  isEditable      Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([key])
+}
+
+// ============================================
+// BACK-FILE ACCESS & TAGGING
+// ============================================
+
+// Back File - Old files that can be linked to active files
+model BackFile {
+  id              String   @id @default(uuid())
+  fileNumber      String   @unique
+  subject         String
+  description     String?  @db.Text
+  
+  // Original file metadata
+  originalFileId  String?  // If this was migrated from an old system
+  departmentId    String
+  department      Department @relation(fields: [departmentId], references: [id])
+  
+  // File storage
+  s3Key           String?
+  s3Bucket        String?
+  
+  // Status
+  isScanned       Boolean  @default(false)
+  scannedAt       DateTime?
+  scannedById     String?
+  
+  // Access control
+  isHidden        Boolean  @default(true) // Hidden by default
+  accessRoles     String[] // Roles that can access this back file
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  linkedFiles     FileBackFileLink[] // Files that reference this back file
+  tags            BackFileTag[]
+  
+  @@index([fileNumber])
+  @@index([departmentId])
+  @@index([isHidden])
+}
+
+// Link back files to active files
+model FileBackFileLink {
+  id              String   @id @default(uuid())
+  fileId          String
+  file            File     @relation("FileBackFileLinks", fields: [fileId], references: [id], onDelete: Cascade)
+  backFileId      String
+  backFile        BackFile @relation(fields: [backFileId], references: [id], onDelete: Cascade)
+  
+  // Link metadata
+  linkReason      String?  // Why this back file is linked
+  linkedById      String
+  linkedBy        User     @relation("LinkedBy", fields: [linkedById], references: [id])
+  
+  createdAt       DateTime @default(now())
+  
+  @@unique([fileId, backFileId])
+  @@index([fileId])
+  @@index([backFileId])
+}
+
+// Tags for back files
+model BackFileTag {
+  id              String   @id @default(uuid())
+  backFileId      String
+  backFile        BackFile @relation(fields: [backFileId], references: [id], onDelete: Cascade)
+  
+  tagName         String
+  tagValue        String?
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([backFileId])
+  @@index([tagName])
+}

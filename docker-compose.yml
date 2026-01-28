@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: efiling-postgres
+    environment:
+      POSTGRES_USER: efiling
+      POSTGRES_PASSWORD: efiling123
+      POSTGRES_DB: efiling_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U efiling"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - efiling-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: efiling-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - efiling-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: efiling-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: efiling
+      RABBITMQ_DEFAULT_PASS: efiling123
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - efiling-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: efiling-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"   # API port
+      - "9001:9001"   # Console port
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - efiling-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: efiling-backend
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: "postgresql://efiling:efiling123@postgres:5432/efiling_db?schema=public"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_URL: "amqp://efiling:efiling123@rabbitmq:5672"
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_BUCKET_NAME: efiling-documents
+      MINIO_PUBLIC_ENDPOINT: localhost
+      MINIO_PUBLIC_PORT: 9000
+      JWT_SECRET: "your-super-secret-jwt-key-change-in-production"
+      JWT_EXPIRES_IN: "7d"
+      PORT: 3001
+      NODE_ENV: production
+      FRONTEND_URL: "http://localhost:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - efiling-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: efiling-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:3001"
+    depends_on:
+      - backend
+    networks:
+      - efiling-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  minio_data:
+
+networks:
+  efiling-network:
+    driver: bridge

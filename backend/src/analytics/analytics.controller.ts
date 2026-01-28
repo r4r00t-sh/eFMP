@@ -1,0 +1,161 @@
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+  Request,
+  Res,
+  Header,
+} from '@nestjs/common';
+import type { Response } from 'express';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { UserRole } from '@prisma/client';
+import { AnalyticsService } from './analytics.service';
+
+@Controller('analytics')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class AnalyticsController {
+  constructor(private analyticsService: AnalyticsService) {}
+
+  @Get('dashboard')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.DEPT_ADMIN)
+  async getDashboardAnalytics(
+    @Request() req,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    const departmentId = req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined;
+    return this.analyticsService.getDashboardAnalytics(
+      departmentId,
+      dateFrom ? new Date(dateFrom) : undefined,
+      dateTo ? new Date(dateTo) : undefined,
+    );
+  }
+
+  @Get('departments')
+  @Roles(UserRole.SUPER_ADMIN)
+  async getDepartmentAnalytics() {
+    return this.analyticsService.getDepartmentAnalytics();
+  }
+
+  @Get('users')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.DEPT_ADMIN)
+  async getUserPerformanceAnalytics(
+    @Request() req,
+    @Query('limit') limit?: string,
+  ) {
+    const departmentId = req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined;
+    return this.analyticsService.getUserPerformanceAnalytics(
+      departmentId,
+      limit ? parseInt(limit) : 50,
+    );
+  }
+
+  @Get('processing-time')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.DEPT_ADMIN)
+  async getProcessingTimeAnalytics(@Request() req) {
+    const departmentId = req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined;
+    return this.analyticsService.getProcessingTimeAnalytics(departmentId);
+  }
+
+  @Get('bottlenecks')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.DEPT_ADMIN)
+  async getBottleneckAnalysis(@Request() req) {
+    const departmentId = req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined;
+    return this.analyticsService.getBottleneckAnalysis(departmentId);
+  }
+
+  @Get('report')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.DEPT_ADMIN)
+  async generateReport(
+    @Request() req,
+    @Query('type') type: 'summary' | 'detailed' | 'user_performance' | 'department',
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    const departmentId = req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined;
+    return this.analyticsService.generateReport(
+      type || 'summary',
+      departmentId,
+      dateFrom ? new Date(dateFrom) : undefined,
+      dateTo ? new Date(dateTo) : undefined,
+    );
+  }
+
+  @Get('report/export')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.DEPT_ADMIN)
+  @Header('Content-Type', 'text/csv')
+  async exportReportCSV(
+    @Request() req,
+    @Res() res: Response,
+    @Query('type') type: 'summary' | 'detailed' | 'user_performance' | 'department',
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    const departmentId = req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined;
+    const data: any = await this.analyticsService.generateReport(
+      type || 'detailed',
+      departmentId,
+      dateFrom ? new Date(dateFrom) : undefined,
+      dateTo ? new Date(dateTo) : undefined,
+    );
+
+    let csv = '';
+    const filename = `efiling-report-${type}-${new Date().toISOString().split('T')[0]}.csv`;
+
+    if (type === 'detailed' && data.files) {
+      csv = this.convertToCSV(data.files);
+    } else if (type === 'user_performance' && data.users) {
+      csv = this.convertToCSV(data.users);
+    } else if (type === 'department' && data.departments) {
+      csv = this.convertToCSV(data.departments);
+    } else if (data.summary) {
+      csv = this.convertSummaryToCSV(data);
+    }
+
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  }
+
+  private convertToCSV(data: any[]): string {
+    if (!data || data.length === 0) return '';
+    
+    const headers = Object.keys(data[0]);
+    const rows = data.map(row =>
+      headers.map(header => {
+        const value = row[header];
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'object') return JSON.stringify(value);
+        if (typeof value === 'string' && value.includes(',')) return `"${value}"`;
+        return String(value);
+      }).join(',')
+    );
+
+    return [headers.join(','), ...rows].join('\n');
+  }
+
+  private convertSummaryToCSV(data: any): string {
+    const lines: string[] = [];
+    lines.push('Metric,Value');
+    
+    if (data.summary) {
+      Object.entries(data.summary).forEach(([key, value]) => {
+        lines.push(`${key},${value}`);
+      });
+    }
+
+    if (data.filesByPriority) {
+      lines.push('');
+      lines.push('Files by Priority');
+      lines.push('Priority,Count');
+      data.filesByPriority.forEach((p: any) => {
+        lines.push(`${p.priority},${p.count}`);
+      });
+    }
+
+    return lines.join('\n');
+  }
+}
+
