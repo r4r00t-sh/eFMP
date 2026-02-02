@@ -3,12 +3,12 @@ import { BackFilesService } from './backfiles.service';
 import { BackFilesController } from './backfiles.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { MinIOModule } from '../minio/minio.module';
+import { SecurityModule } from '../security/security.module';
 
 @Module({
-  imports: [PrismaModule, MinIOModule],
+  imports: [PrismaModule, MinIOModule, SecurityModule],
   controllers: [BackFilesController],
   providers: [BackFilesService],
   exports: [BackFilesService],
 })
 export class BackFilesModule {}
-

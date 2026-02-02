@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
 
@@ -9,7 +13,7 @@ export class DesksService {
   // Create a new desk
   async createDesk(
     userId: string,
-    userRole: UserRole,
+    userRoles: string[],
     data: {
       name: string;
       code: string;
@@ -21,7 +25,7 @@ export class DesksService {
     },
   ) {
     // Only admins can create desks
-    if (userRole !== UserRole.SUPER_ADMIN && userRole !== UserRole.DEPT_ADMIN) {
+    if (!userRoles.includes(UserRole.SUPER_ADMIN) && !userRoles.includes(UserRole.DEPT_ADMIN)) {
       throw new ForbiddenException('Only administrators can create desks');
     }
 
@@ -73,18 +77,18 @@ export class DesksService {
     });
 
     // Calculate capacity utilization for each desk
-    return desks.map(desk => {
+    return desks.map((desk) => {
       const currentCount = desk._count.files;
-      const utilization = desk.maxFilesPerDay > 0
-        ? (currentCount / desk.maxFilesPerDay) * 100
-        : 0;
+      const utilization =
+        desk.maxFilesPerDay > 0
+          ? (currentCount / desk.maxFilesPerDay) * 100
+          : 0;
 
       // Calculate estimated processing time
       // If desk is at capacity, estimate based on files per day
       // Otherwise, estimate based on current queue
-      const estimatedDays = currentCount > 0
-        ? Math.ceil(currentCount / desk.maxFilesPerDay)
-        : 0;
+      const estimatedDays =
+        currentCount > 0 ? Math.ceil(currentCount / desk.maxFilesPerDay) : 0;
       const estimatedHours = estimatedDays * 8; // Assuming 8 working hours per day
 
       return {
@@ -119,9 +123,10 @@ export class DesksService {
       throw new NotFoundException('Desk not found');
     }
 
-    const utilization = desk.maxFilesPerDay > 0
-      ? (desk.files.length / desk.maxFilesPerDay) * 100
-      : 0;
+    const utilization =
+      desk.maxFilesPerDay > 0
+        ? (desk.files.length / desk.maxFilesPerDay) * 100
+        : 0;
 
     return {
       ...desk,
@@ -135,7 +140,7 @@ export class DesksService {
     fileId: string,
     deskId: string,
     userId: string,
-    userRole: UserRole,
+    userRoles: string[],
   ) {
     const file = await this.prisma.file.findUnique({
       where: { id: fileId },
@@ -155,11 +160,13 @@ export class DesksService {
 
     // Check authorization - only admins or assigned user can assign
     if (
-      userRole !== UserRole.SUPER_ADMIN &&
-      userRole !== UserRole.DEPT_ADMIN &&
+      !userRoles.includes(UserRole.SUPER_ADMIN) &&
+      !userRoles.includes(UserRole.DEPT_ADMIN) &&
       file.assignedToId !== userId
     ) {
-      throw new ForbiddenException('You are not authorized to assign files to desks');
+      throw new ForbiddenException(
+        'You are not authorized to assign files to desks',
+      );
     }
 
     // Check capacity
@@ -168,7 +175,9 @@ export class DesksService {
     });
 
     if (currentCount >= desk.maxFilesPerDay) {
-      throw new ForbiddenException('Desk capacity reached. Please select another desk or create a new one.');
+      throw new ForbiddenException(
+        'Desk capacity reached. Please select another desk or create a new one.',
+      );
     }
 
     // Assign file
@@ -195,9 +204,8 @@ export class DesksService {
       },
     });
 
-    const utilization = desk.maxFilesPerDay > 0
-      ? (currentCount / desk.maxFilesPerDay) * 100
-      : 0;
+    const utilization =
+      desk.maxFilesPerDay > 0 ? (currentCount / desk.maxFilesPerDay) * 100 : 0;
 
     return this.prisma.desk.update({
       where: { id: deskId },
@@ -250,14 +258,12 @@ export class DesksService {
     const desks = await this.getDesks(departmentId, divisionId);
 
     // Find desks at or above capacity
-    const fullDesks = desks.filter(
-      d => d.capacityUtilizationPercent >= 100,
-    );
+    const fullDesks = desks.filter((d) => d.capacityUtilizationPercent >= 100);
 
     if (fullDesks.length > 0) {
       // Check if there are any desks with available capacity
       const availableDesks = desks.filter(
-        d => d.capacityUtilizationPercent < 100,
+        (d) => d.capacityUtilizationPercent < 100,
       );
 
       // If no available desks, auto-create one
@@ -293,25 +299,25 @@ export class DesksService {
 
     const totalFiles = desks.reduce((sum, d) => sum + d._count.files, 0);
     const totalCapacity = desks.reduce((sum, d) => sum + d.maxFilesPerDay, 0);
-    const overallUtilization = totalCapacity > 0
-      ? (totalFiles / totalCapacity) * 100
-      : 0;
+    const overallUtilization =
+      totalCapacity > 0 ? (totalFiles / totalCapacity) * 100 : 0;
 
     return {
       totalDesks: desks.length,
-      activeDesks: desks.filter(d => d._count.files > 0).length,
+      activeDesks: desks.filter((d) => d._count.files > 0).length,
       totalFiles,
       totalCapacity,
       overallUtilization: Math.round(overallUtilization * 100) / 100,
-      desks: desks.map(d => ({
+      desks: desks.map((d) => ({
         id: d.id,
         name: d.name,
         code: d.code,
         currentFiles: d._count.files,
         maxFiles: d.maxFilesPerDay,
-        utilization: d.maxFilesPerDay > 0
-          ? Math.round((d._count.files / d.maxFilesPerDay) * 100 * 100) / 100
-          : 0,
+        utilization:
+          d.maxFilesPerDay > 0
+            ? Math.round((d._count.files / d.maxFilesPerDay) * 100 * 100) / 100
+            : 0,
         isFull: d._count.files >= d.maxFilesPerDay,
         department: d.department,
         division: d.division,
@@ -323,7 +329,7 @@ export class DesksService {
   async updateDesk(
     deskId: string,
     userId: string,
-    userRole: UserRole,
+    userRoles: string[],
     data: {
       name?: string;
       description?: string;
@@ -332,7 +338,7 @@ export class DesksService {
       isActive?: boolean;
     },
   ) {
-    if (userRole !== UserRole.SUPER_ADMIN && userRole !== UserRole.DEPT_ADMIN) {
+    if (!userRoles.includes(UserRole.SUPER_ADMIN) && !userRoles.includes(UserRole.DEPT_ADMIN)) {
       throw new ForbiddenException('Only administrators can update desks');
     }
 
@@ -343,8 +349,8 @@ export class DesksService {
   }
 
   // Delete desk (soft delete)
-  async deleteDesk(deskId: string, userId: string, userRole: UserRole) {
-    if (userRole !== UserRole.SUPER_ADMIN && userRole !== UserRole.DEPT_ADMIN) {
+  async deleteDesk(deskId: string, userId: string, userRoles: string[]) {
+    if (!userRoles.includes(UserRole.SUPER_ADMIN) && !userRoles.includes(UserRole.DEPT_ADMIN)) {
       throw new ForbiddenException('Only administrators can delete desks');
     }
 
@@ -354,7 +360,9 @@ export class DesksService {
     });
 
     if (fileCount > 0) {
-      throw new ForbiddenException('Cannot delete desk with active files. Please reassign files first.');
+      throw new ForbiddenException(
+        'Cannot delete desk with active files. Please reassign files first.',
+      );
     }
 
     return this.prisma.desk.update({
@@ -363,4 +371,3 @@ export class DesksService {
     });
   }
 }
-

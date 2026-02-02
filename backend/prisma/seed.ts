@@ -130,13 +130,13 @@ async function main() {
   // Super Admin
   const superAdmin = await prisma.user.upsert({
     where: { username: 'admin' },
-    update: {},
+    update: { roles: [UserRole.SUPER_ADMIN] },
     create: {
       username: 'admin',
       passwordHash: await bcrypt.hash('admin123', 10),
       name: 'Super Administrator',
       email: 'admin@efiling.gov',
-      role: UserRole.SUPER_ADMIN,
+      roles: [UserRole.SUPER_ADMIN],
     },
   });
   console.log('✅ Super Admin created:', superAdmin.username);
@@ -144,13 +144,13 @@ async function main() {
   // Department Admins
   const deptAdmin = await prisma.user.upsert({
     where: { username: 'finadmin' },
-    update: {},
+    update: { roles: [UserRole.DEPT_ADMIN] },
     create: {
       username: 'finadmin',
       passwordHash,
       name: 'Finance Admin',
       email: 'finadmin@efiling.gov',
-      role: UserRole.DEPT_ADMIN,
+      roles: [UserRole.DEPT_ADMIN],
       departmentId: finDept.id,
     },
   });
@@ -165,7 +165,7 @@ async function main() {
         passwordHash,
         name: 'John Smith',
         email: 'john@efiling.gov',
-        role: UserRole.SECTION_OFFICER,
+        roles: [UserRole.SECTION_OFFICER],
         departmentId: finDept.id,
         divisionId: 'fin-budget',
       },
@@ -178,7 +178,7 @@ async function main() {
         passwordHash,
         name: 'Jane Doe',
         email: 'jane@efiling.gov',
-        role: UserRole.SECTION_OFFICER,
+        roles: [UserRole.SECTION_OFFICER],
         departmentId: finDept.id,
         divisionId: 'fin-accounts',
       },
@@ -191,7 +191,7 @@ async function main() {
         passwordHash,
         name: 'Mike Johnson',
         email: 'mike@efiling.gov',
-        role: UserRole.SECTION_OFFICER,
+        roles: [UserRole.SECTION_OFFICER],
         departmentId: finDept.id,
         divisionId: 'fin-audit',
       },
@@ -208,7 +208,7 @@ async function main() {
       passwordHash,
       name: 'Finance Inward Desk',
       email: 'inward@efiling.gov',
-      role: UserRole.INWARD_DESK,
+      roles: [UserRole.INWARD_DESK],
       departmentId: finDept.id,
     },
   });
@@ -223,7 +223,7 @@ async function main() {
       passwordHash,
       name: 'Finance Dispatcher',
       email: 'dispatch@efiling.gov',
-      role: UserRole.DISPATCHER,
+      roles: [UserRole.DISPATCHER],
       departmentId: finDept.id,
     },
   });
@@ -238,14 +238,45 @@ async function main() {
       passwordHash,
       name: 'Finance Approver',
       email: 'approver@efiling.gov',
-      role: UserRole.APPROVAL_AUTHORITY,
+      roles: [UserRole.APPROVAL_AUTHORITY],
       departmentId: finDept.id,
     },
   });
   console.log('✅ Approval Authority created:', approvalAuth.username);
 
+  // Chat Manager (can create groups and add members)
+  const chatManager = await prisma.user.upsert({
+    where: { username: 'chatmanager.fin' },
+    update: {},
+    create: {
+      username: 'chatmanager.fin',
+      passwordHash,
+      name: 'Finance Chat Manager',
+      email: 'chatmanager@efiling.gov',
+      roles: [UserRole.CHAT_MANAGER],
+      departmentId: finDept.id,
+    },
+  });
+  console.log('✅ Chat Manager created:', chatManager.username);
+
+  // Generic USER role (clerk)
+  const clerk = await prisma.user.upsert({
+    where: { username: 'clerk.fin' },
+    update: {},
+    create: {
+      username: 'clerk.fin',
+      passwordHash,
+      name: 'Finance Clerk',
+      email: 'clerk@efiling.gov',
+      roles: [UserRole.USER],
+      departmentId: finDept.id,
+      divisionId: 'fin-budget',
+    },
+  });
+  console.log('✅ Clerk (USER role) created:', clerk.username);
+
   // Create UserPoints for all users
-  const allUsers = [superAdmin, deptAdmin, ...sectionOfficers, inwardDesk, dispatcher, approvalAuth];
+  const allUsers = [superAdmin, deptAdmin, ...sectionOfficers, inwardDesk, dispatcher, approvalAuth, chatManager, clerk];
   for (const user of allUsers) {
     await prisma.userPoints.upsert({
       where: { userId: user.id },
@@ -258,6 +289,162 @@ async function main() {
     });
   }
   console.log('✅ User points initialized');
+
+  // Create Default Workflow (active and published) - before files so it runs even if files fail
+  const defaultWorkflow = await prisma.workflow.upsert({
+    where: { code: 'DEFAULT' },
+    update: {},
+    create: {
+      name: 'Default File Processing Workflow',
+      code: 'DEFAULT',
+      description: 'Standard workflow for file processing: Inward → Section Officer → Approval → Dispatch',
+      departmentId: null, // Global workflow
+      fileType: null,
+      priorityCategory: null,
+      createdById: superAdmin.id,
+      publishedById: superAdmin.id,
+      publishedAt: new Date(),
+      isDraft: false,
+      isActive: true,
+      isPublished: true,
+    },
+  });
+  console.log('✅ Default workflow created:', defaultWorkflow.name);
+
+  // Create workflow nodes for default workflow
+  const startNode = await prisma.workflowNode.create({
+    data: {
+      workflowId: defaultWorkflow.id,
+      nodeId: 'start',
+      nodeType: 'start',
+      label: 'Start',
+      description: 'File enters the system',
+      positionX: 100,
+      positionY: 100,
+    },
+  });
+
+  const inwardNode = await prisma.workflowNode.create({
+    data: {
+      workflowId: defaultWorkflow.id,
+      nodeId: 'inward_desk',
+      nodeType: 'task',
+      label: 'Inward Desk',
+      description: 'File received at inward desk',
+      assigneeType: 'role',
+      assigneeValue: 'INWARD_DESK',
+      timeLimit: 24 * 60 * 60, // 24 hours
+      timeLimitType: 'business_days',
+      availableActions: ['forward', 'return'],
+      positionX: 100,
+      positionY: 200,
+    },
+  });
+
+  const sectionNode = await prisma.workflowNode.create({
+    data: {
+      workflowId: defaultWorkflow.id,
+      nodeId: 'section_officer',
+      nodeType: 'task',
+      label: 'Section Officer',
+      description: 'Processing by section officer',
+      assigneeType: 'role',
+      assigneeValue: 'SECTION_OFFICER',
+      timeLimit: 3 * 24 * 60 * 60, // 3 days
+      timeLimitType: 'business_days',
+      availableActions: ['forward', 'return', 'request_opinion'],
+      positionX: 100,
+      positionY: 300,
+    },
+  });
+
+  const approvalNode = await prisma.workflowNode.create({
+    data: {
+      workflowId: defaultWorkflow.id,
+      nodeId: 'approval',
+      nodeType: 'task',
+      label: 'Approval Authority',
+      description: 'Review and approval',
+      assigneeType: 'role',
+      assigneeValue: 'APPROVAL_AUTHORITY',
+      timeLimit: 2 * 24 * 60 * 60, // 2 days
+      timeLimitType: 'business_days',
+      availableActions: ['approve', 'reject', 'return'],
+      positionX: 100,
+      positionY: 400,
+    },
+  });
+
+  const dispatchNode = await prisma.workflowNode.create({
+    data: {
+      workflowId: defaultWorkflow.id,
+      nodeId: 'dispatch',
+      nodeType: 'task',
+      label: 'Dispatch',
+      description: 'File ready for dispatch',
+      assigneeType: 'role',
+      assigneeValue: 'DISPATCHER',
+      timeLimit: 24 * 60 * 60, // 24 hours
+      timeLimitType: 'business_days',
+      availableActions: ['dispatch'],
+      positionX: 100,
+      positionY: 500,
+    },
+  });
+
+  const endNode = await prisma.workflowNode.create({
+    data: {
+      workflowId: defaultWorkflow.id,
+      nodeId: 'end',
+      nodeType: 'end',
+      label: 'End',
+      description: 'File processing complete',
+      positionX: 100,
+      positionY: 600,
+    },
+  });
+
+  // Create workflow edges (connections)
+  await prisma.workflowEdge.createMany({
+    data: [
+      {
+        workflowId: defaultWorkflow.id,
+        sourceNodeId: startNode.id,
+        targetNodeId: inwardNode.id,
+        label: 'Start',
+        priority: 1,
+      },
+      {
+        workflowId: defaultWorkflow.id,
+        sourceNodeId: inwardNode.id,
+        targetNodeId: sectionNode.id,
+        label: 'Forward',
+        priority: 1,
+      },
+      {
+        workflowId: defaultWorkflow.id,
+        sourceNodeId: sectionNode.id,
+        targetNodeId: approvalNode.id,
+        label: 'Forward',
+        priority: 1,
+      },
+      {
+        workflowId: defaultWorkflow.id,
+        sourceNodeId: approvalNode.id,
+        targetNodeId: dispatchNode.id,
+        label: 'Approved',
+        priority: 1,
+      },
+      {
+        workflowId: defaultWorkflow.id,
+        sourceNodeId: dispatchNode.id,
+        targetNodeId: endNode.id,
+        label: 'Dispatched',
+        priority: 1,
+      },
+    ],
+  });
+  console.log('✅ Default workflow nodes and edges created');
 
   // Helper function to calculate time allotment based on priority
   const getTimeAllotment = (category: FilePriorityCategory) => {
@@ -416,13 +603,15 @@ async function main() {
   console.log('✅ Sample notes created');
 
   console.log('🎉 Seed completed successfully!');
-  console.log('\n📋 Test Accounts:');
+  console.log('\n📋 Test Accounts (all use password123 except Super Admin):');
   console.log('  Super Admin:        admin / admin123');
   console.log('  Dept Admin:         finadmin / password123');
+  console.log('  Chat Manager:       chatmanager.fin / password123');
   console.log('  Approval Authority: approver.fin / password123');
   console.log('  Section Officers:   john.budget, jane.accounts, mike.audit / password123');
   console.log('  Inward Desk:        inward.fin / password123');
   console.log('  Dispatcher:         dispatch.fin / password123');
+  console.log('  Clerk (USER):       clerk.fin / password123');
 }
 
 main()

@@ -7,4 +7,3 @@ import { PresenceGateway } from './presence.gateway';
   exports: [PresenceService],
 })
 export class PresenceModule {}
-

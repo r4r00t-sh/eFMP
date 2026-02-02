@@ -27,7 +27,7 @@ export class DepartmentsService {
           },
         },
         users: {
-          select: { id: true, name: true, username: true, role: true },
+          select: { id: true, name: true, username: true, roles: true },
         },
       },
     });
@@ -39,7 +39,11 @@ export class DepartmentsService {
     return department;
   }
 
-  async createDepartment(data: { name: string; code: string; organisationId: string }) {
+  async createDepartment(data: {
+    name: string;
+    code: string;
+    organisationId: string;
+  }) {
     return this.prisma.department.create({
       data: {
         name: data.name,
@@ -93,7 +97,7 @@ export class DepartmentsService {
   async createDivision(departmentId: string, name: string) {
     // Generate code from name
     const code = name.toUpperCase().replace(/\s+/g, '-').substring(0, 10);
-    
+
     return this.prisma.division.create({
       data: {
         name,
@@ -113,10 +117,9 @@ export class DepartmentsService {
         id: true,
         name: true,
         username: true,
-        role: true,
+        roles: true,
       },
       orderBy: { name: 'asc' },
     });
   }
 }
-

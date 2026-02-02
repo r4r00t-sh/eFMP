@@ -23,7 +23,8 @@ export class OpinionsController {
   @Post('request')
   async requestOpinion(
     @Request() req,
-    @Body() body: {
+    @Body()
+    body: {
       fileId: string;
       requestedToDepartmentId: string;
       requestedToDivisionId?: string;
@@ -56,7 +57,10 @@ export class OpinionsController {
     @Param('id') opinionRequestId: string,
     @Request() req,
   ) {
-    return this.opinionsService.getFileForOpinion(opinionRequestId, req.user.id);
+    return this.opinionsService.getFileForOpinion(
+      opinionRequestId,
+      req.user.id,
+    );
   }
 
   // Add opinion note
@@ -85,7 +89,7 @@ export class OpinionsController {
   ) {
     return this.opinionsService.provideOpinion(opinionRequestId, req.user.id, {
       opinionNote: body.opinionNote,
-      attachmentFiles: files?.map(file => ({
+      attachmentFiles: files?.map((file) => ({
         buffer: file.buffer,
         filename: file.originalname,
         mimetype: file.mimetype,
@@ -96,11 +100,7 @@ export class OpinionsController {
 
   // Return opinion
   @Post('requests/:id/return')
-  async returnOpinion(
-    @Param('id') opinionRequestId: string,
-    @Request() req,
-  ) {
+  async returnOpinion(@Param('id') opinionRequestId: string, @Request() req) {
     return this.opinionsService.returnOpinion(opinionRequestId, req.user.id);
   }
 }
-

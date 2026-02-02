@@ -1,0 +1,40 @@
+name: efiling_app
+description: EFMP - E-Filing Management Platform. Cross-platform Flutter app matching the web app UI and features.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  # UI & theme (match web: Funnel Display font, same colors)
+  google_fonts: ^8.0.0
+  # API & state
+  dio: ^5.4.0
+  provider: ^6.1.2
+  shared_preferences: ^2.2.2
+  # Navigation
+  go_router: ^14.2.0
+  curved_labeled_navigation_bar: ^2.0.6
+  # Icons (match lucide style where possible)
+  cupertino_icons: ^1.0.6
+  # Utils
+  intl: ^0.20.2
+  uuid: ^4.3.3
+  file_picker: ^8.0.0
+  url_launcher: ^6.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
+    - assets/logo.png

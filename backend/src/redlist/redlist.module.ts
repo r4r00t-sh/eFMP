@@ -9,4 +9,3 @@ import { RabbitMQModule } from '../rabbitmq/rabbitmq.module';
   exports: [RedListService],
 })
 export class RedListModule {}
-

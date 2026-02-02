@@ -10,10 +10,14 @@ export const CustomThrottle = (options: {
   medium?: { limit: number; ttl: number };
   long?: { limit: number; ttl: number };
 }) => {
-  const decorators = [];
+  const decorators: (MethodDecorator & ClassDecorator)[] = [];
 
   if (options.short) {
-    decorators.push(Throttle({ default: { limit: options.short.limit, ttl: options.short.ttl } }));
+    decorators.push(
+      Throttle({
+        default: { limit: options.short.limit, ttl: options.short.ttl },
+      }),
+    );
   }
 
   return applyDecorators(...decorators);
@@ -42,4 +46,3 @@ export const LenientThrottle = () =>
   Throttle({
     default: { limit: 200, ttl: 60000 }, // 200 requests per minute
   });
-

@@ -1,0 +1,37 @@
+# Ingress for external access. Requires an Ingress controller (e.g. nginx-ingress, traefik).
+# For local clusters (Kind, Minikube), you may use NodePort/LoadBalancer instead.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: efiling-ingress
+  namespace: efiling
+  annotations:
+    # nginx-ingress: proxy body size for file uploads
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    # Uncomment for TLS (replace with your cert manager or secret)
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: efiling.local
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 3001
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000
+  # Uncomment and add your TLS secret for HTTPS
+  # tls:
+  #   - hosts:
+  #       - efiling.local
+  #     secretName: efiling-tls

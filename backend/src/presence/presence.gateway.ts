@@ -17,7 +17,9 @@ import { PresenceService } from './presence.service';
   },
   namespace: '/presence',
 })
-export class PresenceGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class PresenceGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -54,4 +56,3 @@ export class PresenceGateway implements OnGatewayConnection, OnGatewayDisconnect
     return { userId: data.userId, status };
   }
 }
-

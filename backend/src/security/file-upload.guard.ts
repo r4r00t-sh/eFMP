@@ -26,4 +26,3 @@ export class FileUploadGuard implements CanActivate {
     return true;
   }
 }
-

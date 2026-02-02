@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MinIOService } from '../minio/minio.service';
 import * as crypto from 'crypto';
@@ -37,8 +41,13 @@ export class DocumentsService {
     }
 
     // Check if user can modify
-    if (attachment.file.assignedToId !== userId && attachment.file.createdById !== userId) {
-      throw new ForbiddenException('You are not authorized to upload new versions');
+    if (
+      attachment.file.assignedToId !== userId &&
+      attachment.file.createdById !== userId
+    ) {
+      throw new ForbiddenException(
+        'You are not authorized to upload new versions',
+      );
     }
 
     // Get current version number
@@ -47,7 +56,9 @@ export class DocumentsService {
       orderBy: { versionNumber: 'desc' },
     });
 
-    const newVersionNumber = latestVersion ? latestVersion.versionNumber + 1 : 2;
+    const newVersionNumber = latestVersion
+      ? latestVersion.versionNumber + 1
+      : 2;
 
     // First, save current version to version history
     if (!latestVersion) {
@@ -65,7 +76,10 @@ export class DocumentsService {
           uploadedById: attachment.uploadedById || userId,
           changeDescription: 'Original version',
           isLatest: false,
-          checksum: await this.calculateChecksum(attachment.s3Key, attachment.s3Bucket),
+          checksum: await this.calculateChecksum(
+            attachment.s3Key,
+            attachment.s3Bucket,
+          ),
         },
       });
     } else {
@@ -142,7 +156,7 @@ export class DocumentsService {
       orderBy: { versionNumber: 'desc' },
     });
 
-    return versions.map(v => ({
+    return versions.map((v) => ({
       ...v,
       downloadUrl: `/documents/versions/${v.id}/download`,
     }));
@@ -187,8 +201,13 @@ export class DocumentsService {
     }
 
     // Check authorization
-    if (attachment.file.assignedToId !== userId && attachment.file.createdById !== userId) {
-      throw new ForbiddenException('You are not authorized to restore versions');
+    if (
+      attachment.file.assignedToId !== userId &&
+      attachment.file.createdById !== userId
+    ) {
+      throw new ForbiddenException(
+        'You are not authorized to restore versions',
+      );
     }
 
     // Mark all versions as not latest
@@ -486,7 +505,11 @@ export class DocumentsService {
 
     if (templateFile) {
       templateS3Key = `templates/${data.code}/${templateFile.filename}`;
-      await this.minio.uploadFile(templateS3Key, templateFile.buffer, templateFile.mimetype);
+      await this.minio.uploadFile(
+        templateS3Key,
+        templateFile.buffer,
+        templateFile.mimetype,
+      );
     }
 
     const template = await this.prisma.fileTemplate.create({
@@ -497,8 +520,9 @@ export class DocumentsService {
         category: data.category,
         defaultSubject: data.defaultSubject,
         defaultDescription: data.defaultDescription,
-        defaultPriority: data.defaultPriority as any || 'NORMAL',
-        defaultPriorityCategory: data.defaultPriorityCategory as any || 'ROUTINE',
+        defaultPriority: (data.defaultPriority as any) || 'NORMAL',
+        defaultPriorityCategory:
+          (data.defaultPriorityCategory as any) || 'ROUTINE',
         defaultDueDays: data.defaultDueDays,
         defaultDepartmentId: data.defaultDepartmentId,
         defaultDivisionId: data.defaultDivisionId,
@@ -520,10 +544,7 @@ export class DocumentsService {
     const where: any = { isActive: true };
 
     if (departmentId) {
-      where.OR = [
-        { isPublic: true },
-        { departmentId },
-      ];
+      where.OR = [{ isPublic: true }, { departmentId }];
     } else {
       where.isPublic = true;
     }
@@ -594,7 +615,7 @@ export class DocumentsService {
       _count: { id: true },
     });
 
-    return categories.map(c => ({
+    return categories.map((c) => ({
       category: c.category,
       count: c._count.id,
     }));
@@ -604,7 +625,10 @@ export class DocumentsService {
   // HELPER METHODS
   // ============================================
 
-  private async calculateChecksum(s3Key: string, bucket: string): Promise<string | null> {
+  private async calculateChecksum(
+    s3Key: string,
+    bucket: string,
+  ): Promise<string | null> {
     try {
       const stream = await this.minio.getFileStream(s3Key);
       return new Promise((resolve, reject) => {
@@ -618,4 +642,3 @@ export class DocumentsService {
     }
   }
 }
-

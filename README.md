@@ -1,217 +1,182 @@
-# Gateway Enterprise E-Filing System
+# eFMP – E-Filing Management Platform
 
-A comprehensive, gamified, self-hosted e-filing system built with Next.js 15 and NestJS.
+A full-stack **E-Filing Management Platform** with a web application (Next.js + NestJS) and a cross-platform **Flutter** mobile app. Built for file tracking, dispatch, opinions, chat, analytics, and workflow management.
 
-## Architecture
+---
 
-### Frontend
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
-- **UI**: Shadcn UI (Nova/Neutral theme)
-- **State Management**: Zustand
-- **Real-time**: Socket.IO Client
+## Repository
 
-### Backend
-- **Framework**: NestJS (Modular Architecture)
-- **ORM**: Prisma (PostgreSQL)
-- **Real-time**: WebSockets (Socket.IO)
-- **Cache**: Redis
-- **Message Queue**: RabbitMQ
-- **Storage**: MinIO (S3-compatible)
+- **GitHub:** [https://github.com/r4r00t-sh/eFMP](https://github.com/r4r00t-sh/eFMP)
+- **Clone:** `git clone https://github.com/r4r00t-sh/eFMP.git`
 
-### Infrastructure
-- **Database**: PostgreSQL 16
-- **Cache/Real-time**: Redis 7
-- **Message Queue**: RabbitMQ 3
-- **Object Storage**: MinIO
-- **Deployment**: Docker Compose
+---
 
 ## Features
 
-### 1. Organizational Hierarchy
-- Organisation > Department > Division > User
-- External files land at "Inward Desk" departments
-- Internal forwarding with cascading dropdowns (Division -> User)
-- Double-confirmation modal for routing
+- **File management** – Create, track, forward, recall, and approve files with priority (Routine, Urgent, Immediate, Project) and SLA timers
+- **Dispatch** – Outward dispatch with history and tracking
+- **Opinions** – Request and manage opinions across departments
+- **Chat** – Group conversations and real-time presence
+- **Admin** – Users, departments, desks, workflows, analytics, redlist
+- **Gamification** – Points and leaderboards
+- **Notifications** – In-app and real-time (Socket.IO)
+- **Backfiles** – Backfile registration and linking
+- **Mobile** – Flutter app (Android, iOS, Web) with feature parity to the web UI
 
-### 2. Role-Based Dashboards
-- **Inward Desk**: Digitization, tagging, and initial routing
-- **Section Officer**: File workbench with PDF viewer (Left) and Rich-Text Note editor (Right)
-- **Dept Admin**: Oversight, performance analytics, and "Active Desk" monitoring
-- **Super Admin**: Global analytics and "Recall Protocol" (withdraw any file from any stage)
+---
 
-### 3. Presence Engine
-- WebSocket-based heartbeat system
-- Frontend pings every 3 minutes
-- Status detection: "Active", "Absent", or "Session Timeout"
-- Redis-backed presence tracking
+## Tech Stack
 
-### 4. Actionable Toast System
-- RabbitMQ-driven notifications
-- On file receipt: Toast with [Request Extra Time] button
-- On request: Sender gets toast with [Approve] | [Deny] buttons
+| Layer        | Technology |
+|-------------|------------|
+| **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS, Radix UI, Zustand, Socket.IO client |
+| **Backend**  | NestJS 11, TypeScript, Prisma, PostgreSQL, Passport JWT |
+| **Storage**  | MinIO (S3-compatible) for file uploads |
+| **Queue**    | RabbitMQ |
+| **Cache**    | Redis (sessions, rate limiting) |
+| **Mobile**   | Flutter 3.x, Dart, GoRouter, Provider, Dio |
 
-### 5. Gamification
-- Base: 1000 points
-- Deduct 50 for each "Red List" (overdue) file
-- Add 100 for monthly zero-overdue streaks
-- Live scores displayed in Navbar
-
-### 6. Timing Engine
-- Visual "Battery/Clock" countdown for desk-hops
-- Automatic "Red List" tagging when Time <= 0
-- Holiday/weekend adjustments
-
-## Getting Started
-
-### Prerequisites
-- Node.js 18+
-- Docker & Docker Compose
-- npm or yarn
-
-### Installation
-
-1. **Start Infrastructure Services**
-```bash
-docker-compose up -d
-```
-
-2. **Setup Backend**
-```bash
-cd backend
-npm install
-npx prisma migrate dev
-npx prisma generate
-npm run start:dev
-```
-
-3. **Setup Frontend**
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### Environment Variables
-
-**Backend** (`backend/.env`):
-```
-DATABASE_URL="postgresql://efiling:efiling123@localhost:5432/efiling_db?schema=public"
-REDIS_HOST=localhost
-REDIS_PORT=6379
-RABBITMQ_URL=amqp://efiling:efiling123@localhost:5672
-MINIO_ENDPOINT=localhost
-MINIO_PORT=9000
-MINIO_USE_SSL=false
-MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=minioadmin123
-MINIO_BUCKET_NAME=efiling-documents
-JWT_SECRET=your-super-secret-jwt-key-change-in-production
-JWT_EXPIRES_IN=7d
-PORT=3001
-```
-
-**Frontend** (`frontend/.env.local`):
-```
-NEXT_PUBLIC_API_URL=http://localhost:3001
-```
+---
 
 ## Project Structure
 
 ```
-EFiling-System/
-├── backend/
-│   ├── src/
-│   │   ├── auth/          # Authentication & JWT
-│   │   ├── files/         # File management
-│   │   ├── departments/   # Department/Division APIs
-│   │   ├── presence/      # WebSocket presence gateway
-│   │   ├── gamification/  # Points system
-│   │   ├── timing/        # Timing engine & countdown
-│   │   ├── redlist/       # Red List cron job
-│   │   ├── prisma/        # Prisma service
-│   │   ├── redis/         # Redis service
-│   │   ├── rabbitmq/      # RabbitMQ service
-│   │   └── minio/         # MinIO service
-│   └── prisma/
-│       └── schema.prisma  # Database schema
-├── frontend/
-│   ├── app/               # Next.js App Router pages
-│   ├── components/        # React components
-│   │   ├── ui/           # Shadcn UI components
-│   │   ├── navbar.tsx    # Main navigation
-│   │   ├── presence-client.tsx
-│   │   └── toast-consumer.tsx
-│   └── lib/              # Utilities & API client
-└── docker-compose.yml    # Infrastructure services
+eFMP/
+├── backend/          # NestJS API (auth, files, dispatch, opinions, chat, admin, etc.)
+├── frontend/          # Next.js web app
+├── flutter_app/       # Flutter mobile app (Android, iOS, Web)
+├── k8s/               # Kubernetes manifests (namespace, postgres, redis, rabbitmq, minio, backend, frontend, ingress)
+├── scripts/           # Run scripts (Podman, host)
+├── podman-compose.yml # Local stack (Postgres, Redis, RabbitMQ, MinIO)
+└── nginx.conf         # Optional reverse proxy
 ```
 
-## Key Modules
+---
 
-### Backend Modules
-- **AuthModule**: JWT-based authentication
-- **FilesModule**: File CRUD, forwarding, recall
-- **PresenceModule**: WebSocket gateway for presence tracking
-- **GamificationModule**: Points calculation and streaks
-- **TimingModule**: Time remaining calculations with cron
-- **RedListModule**: Automatic red-listing of overdue files
+## Prerequisites
 
-### Frontend Pages
-- `/login`: Authentication
-- `/dashboard`: Role-based dashboard
-- `/files`: File listing and management
-- `/files/[id]`: File detail view (split-pane)
-- `/admin/*`: Admin dashboards
+- **Node.js** 20+ (for backend and frontend)
+- **pnpm / npm / yarn** (backend & frontend)
+- **Flutter** 3.2+ (for mobile app)
+- **PostgreSQL** 16 (or use Podman/Docker)
+- **Redis**, **RabbitMQ**, **MinIO** (or use `podman-compose`)
 
-## API Endpoints
+---
 
-### Authentication
-- `POST /auth/login` - User login
-- `POST /auth/register` - User registration
-- `GET /auth/profile` - Get current user
+## Quick Start
 
-### Files
-- `POST /files` - Create new file
-- `GET /files/:id` - Get file details
-- `POST /files/:id/forward` - Forward file
-- `POST /files/:id/request-extra-time` - Request extra time
-- `POST /files/:id/recall` - Recall file (Super Admin only)
+### 1. Clone and install
 
-### Departments
-- `GET /departments` - List all departments
-- `GET /departments/inward-desk` - Get inward desk departments
-- `GET /departments/:id/divisions` - Get divisions
-- `GET /departments/:id/divisions/:divisionId/users` - Get users by division
-
-## WebSocket Events
-
-### Presence Namespace (`/presence`)
-- `heartbeat` - Client sends heartbeat
-- `get-presence` - Get user presence status
-
-## Development
-
-### Running Migrations
 ```bash
-cd backend
-npx prisma migrate dev --name migration_name
+git clone https://github.com/r4r00t-sh/eFMP.git
+cd eFMP
 ```
 
-### Generating Prisma Client
+### 2. Start infrastructure (Podman/Docker)
+
+```bash
+podman compose -f podman-compose.yml up -d
+# Or: docker compose -f podman-compose.yml up -d
+```
+
+This starts Postgres, Redis, RabbitMQ, and MinIO. Default ports: `5432`, `6379`, `5672`/`15672`, `9000`/`9001`.
+
+### 3. Backend
+
 ```bash
 cd backend
+cp .env.example .env   # if exists; set DATABASE_URL, REDIS_URL, RABBITMQ_URL, MINIO_* etc.
+npm install
 npx prisma generate
+npx prisma db push     # or: npx prisma migrate deploy
+npm run db:seed        # optional seed data
+npm run start:dev
 ```
 
-### Accessing Services
-- **PostgreSQL**: `localhost:5432`
-- **Redis**: `localhost:6379`
-- **RabbitMQ Management**: `http://localhost:15672` (efiling/efiling123)
-- **MinIO Console**: `http://localhost:9001` (minioadmin/minioadmin123)
-- **Backend API**: `http://localhost:3001`
-- **Frontend**: `http://localhost:3000`
+API runs at `http://localhost:3001` (or port in `.env`).
+
+### 4. Frontend (web app)
+
+```bash
+cd frontend
+cp .env.local.example .env.local   # if exists; set NEXT_PUBLIC_API_URL to backend URL
+npm install
+npm run dev
+```
+
+Web app runs at `http://localhost:3000`.
+
+### 5. Flutter app (optional)
+
+```bash
+cd flutter_app
+flutter pub get
+flutter run
+```
+
+Use Android/iOS simulator or `flutter run -d chrome` for web. Point API base URL in app config to your backend (e.g. `http://10.0.2.2:3001` for Android emulator).
+
+---
+
+## Environment Variables
+
+### Backend (`.env`)
+
+- `DATABASE_URL` – PostgreSQL connection string
+- `REDIS_URL` – Redis URL (e.g. `redis://localhost:6379`)
+- `RABBITMQ_URL` – RabbitMQ URL (e.g. `amqp://efiling:efiling123@localhost:5672`)
+- `MINIO_ENDPOINT`, `MINIO_PORT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` – MinIO
+- `JWT_SECRET` – Secret for JWT signing
+- `PORT` – API port (default `3001`)
+
+### Frontend (`.env.local`)
+
+- `NEXT_PUBLIC_API_URL` – Backend API URL (e.g. `http://localhost:3001`)
+
+---
+
+## Deployment
+
+### Kubernetes
+
+Manifests are in `k8s/`. Apply in order (see `k8s/README.md`):
+
+```bash
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/secrets.yaml
+kubectl apply -f k8s/pvc.yaml
+kubectl apply -f k8s/postgres.yaml
+kubectl apply -f k8s/redis.yaml
+kubectl apply -f k8s/rabbitmq.yaml
+kubectl apply -f k8s/minio.yaml
+kubectl apply -f k8s/backend.yaml
+kubectl apply -f k8s/frontend.yaml
+kubectl apply -f k8s/ingress.yaml
+```
+
+Build and push images `efiling-backend` and `efiling-frontend`, then point the manifests to your registry.
+
+### Podman/Docker
+
+- Backend and frontend have `Dockerfile`s in `backend/` and `frontend/`.
+- Use `podman-compose` or `docker-compose` together with the existing `podman-compose.yml` (or extend it with backend/frontend services).
+
+---
+
+## Scripts
+
+- `scripts/run-podman.ps1` / `scripts/run-podman.sh` – Start Podman stack
+- `scripts/run-backend-on-host.ps1` – Run backend on host (e.g. Windows) against Podmanized DB/Redis/RabbitMQ/MinIO
+
+---
 
 ## License
 
-Private - Enterprise Use Only
+See repository for license information.
 
+---
+
+## Contributing
+
+1. Fork the repo: [https://github.com/r4r00t-sh/eFMP](https://github.com/r4r00t-sh/eFMP)
+2. Create a branch, make changes, and open a Pull Request.

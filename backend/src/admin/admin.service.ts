@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PresenceStatus } from '@prisma/client';
 
@@ -9,11 +9,11 @@ export class AdminService {
   constructor(private prisma: PrismaService) {}
 
   // Get active desk status for department admin
-  async getDeskStatus(departmentId: string, userRole: string) {
+  async getDeskStatus(departmentId: string, userRoles: string[]) {
     // Build query based on role
     const where: any = { isActive: true };
-    
-    if (userRole === 'DEPT_ADMIN') {
+
+    if (userRoles.includes('DEPT_ADMIN') && !userRoles.includes('SUPER_ADMIN')) {
       where.departmentId = departmentId;
     }
     // SUPER_ADMIN sees all
@@ -40,7 +40,7 @@ export class AdminService {
     });
 
     const now = Date.now();
-    return users.map(user => {
+    return users.map((user) => {
       let status: PresenceStatus = PresenceStatus.ABSENT;
       let statusLabel = 'Absent';
       let logoutType: string | null = null;
@@ -67,7 +67,7 @@ export class AdminService {
         id: user.id,
         name: user.name,
         username: user.username,
-        role: user.role,
+        roles: user.roles,
         department: user.department,
         division: user.division,
         status,
@@ -84,7 +84,7 @@ export class AdminService {
   // Get department files for admin
   async getDepartmentFiles(
     departmentId: string | null,
-    userRole: string,
+    userRoles: string[],
     filters: {
       status?: string;
       search?: string;
@@ -94,11 +94,18 @@ export class AdminService {
       limit?: number;
     },
   ) {
-    const { status, search, isRedListed, assignedToId, page = 1, limit = 50 } = filters;
+    const {
+      status,
+      search,
+      isRedListed,
+      assignedToId,
+      page = 1,
+      limit = 50,
+    } = filters;
     const where: any = {};
 
     // Role-based filtering
-    if (userRole === 'DEPT_ADMIN' && departmentId) {
+    if (userRoles.includes('DEPT_ADMIN') && !userRoles.includes('SUPER_ADMIN') && departmentId) {
       where.departmentId = departmentId;
     }
     // SUPER_ADMIN sees all
@@ -122,10 +129,7 @@ export class AdminService {
           assignedTo: { select: { id: true, name: true } },
           createdBy: { select: { id: true, name: true } },
         },
-        orderBy: [
-          { isRedListed: 'desc' },
-          { updatedAt: 'desc' },
-        ],
+        orderBy: [{ isRedListed: 'desc' }, { updatedAt: 'desc' }],
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -144,15 +148,15 @@ export class AdminService {
   }
 
   // Get analytics data
-  async getAnalytics(departmentId: string | null, userRole: string) {
+  async getAnalytics(departmentId: string | null, userRoles: string[]) {
     const where: any = {};
-    if (userRole === 'DEPT_ADMIN' && departmentId) {
+    if (userRoles.includes('DEPT_ADMIN') && !userRoles.includes('SUPER_ADMIN') && departmentId) {
       where.departmentId = departmentId;
     }
 
     // Get user points stats
     const userPointsQuery: any = {};
-    if (departmentId && userRole === 'DEPT_ADMIN') {
+    if (departmentId && userRoles.includes('DEPT_ADMIN') && !userRoles.includes('SUPER_ADMIN')) {
       userPointsQuery.user = { departmentId };
     }
 
@@ -166,22 +170,25 @@ export class AdminService {
       avgProcessingTime,
     ] = await Promise.all([
       this.prisma.file.count({ where }),
-      this.prisma.file.count({ where: { ...where, status: { in: ['PENDING', 'IN_PROGRESS'] } } }),
+      this.prisma.file.count({
+        where: { ...where, status: { in: ['PENDING', 'IN_PROGRESS'] } },
+      }),
       this.prisma.file.count({ where: { ...where, isRedListed: true } }),
       this.prisma.file.count({ where: { ...where, status: 'APPROVED' } }),
       this.prisma.userPoints.findMany({
         where: userPointsQuery,
         include: {
           user: {
-            select: { id: true, name: true, role: true, departmentId: true },
+            select: { id: true, name: true, roles: true, departmentId: true },
           },
         },
         orderBy: { currentPoints: 'desc' },
       }),
       this.prisma.timeExtensionRequest.count({
-        where: departmentId && userRole === 'DEPT_ADMIN'
-          ? { file: { departmentId } }
-          : {},
+        where:
+          departmentId && userRoles.includes('DEPT_ADMIN') && !userRoles.includes('SUPER_ADMIN')
+            ? { file: { departmentId } }
+            : {},
       }),
       this.prisma.file.aggregate({
         where: {
@@ -194,10 +201,10 @@ export class AdminService {
     ]);
 
     // Calculate scores
-    const scores = userPoints.map(up => ({
+    const scores = userPoints.map((up) => ({
       userId: up.userId,
       userName: up.user.name,
-      role: up.user.role,
+      roles: up.user.roles,
       currentPoints: up.currentPoints,
       basePoints: up.basePoints,
       redListCount: up.redListCount,
@@ -205,9 +212,10 @@ export class AdminService {
       streakMonths: up.streakMonths,
     }));
 
-    const avgScore = scores.length > 0
-      ? scores.reduce((sum, s) => sum + s.currentPoints, 0) / scores.length
-      : 0;
+    const avgScore =
+      scores.length > 0
+        ? scores.reduce((sum, s) => sum + s.currentPoints, 0) / scores.length
+        : 0;
 
     return {
       summary: {
@@ -217,7 +225,9 @@ export class AdminService {
         completedFiles,
         extensionRequests,
         avgProcessingTimeHours: avgProcessingTime._avg.totalProcessingTime
-          ? Math.round(avgProcessingTime._avg.totalProcessingTime / 3600 * 10) / 10
+          ? Math.round(
+              (avgProcessingTime._avg.totalProcessingTime / 3600) * 10,
+            ) / 10
           : null,
       },
       scores: {
@@ -244,30 +254,29 @@ export class AdminService {
 
     const deptStats = await Promise.all(
       departments.map(async (dept) => {
-        const [
-          pendingCount,
-          redListCount,
-          completedCount,
-          avgProcessingTime,
-        ] = await Promise.all([
-          this.prisma.file.count({
-            where: { departmentId: dept.id, status: { in: ['PENDING', 'IN_PROGRESS'] } },
-          }),
-          this.prisma.file.count({
-            where: { departmentId: dept.id, isRedListed: true },
-          }),
-          this.prisma.file.count({
-            where: { departmentId: dept.id, status: 'APPROVED' },
-          }),
-          this.prisma.file.aggregate({
-            where: {
-              departmentId: dept.id,
-              status: 'APPROVED',
-              totalProcessingTime: { not: null },
-            },
-            _avg: { totalProcessingTime: true },
-          }),
-        ]);
+        const [pendingCount, redListCount, completedCount, avgProcessingTime] =
+          await Promise.all([
+            this.prisma.file.count({
+              where: {
+                departmentId: dept.id,
+                status: { in: ['PENDING', 'IN_PROGRESS'] },
+              },
+            }),
+            this.prisma.file.count({
+              where: { departmentId: dept.id, isRedListed: true },
+            }),
+            this.prisma.file.count({
+              where: { departmentId: dept.id, status: 'APPROVED' },
+            }),
+            this.prisma.file.aggregate({
+              where: {
+                departmentId: dept.id,
+                status: 'APPROVED',
+                totalProcessingTime: { not: null },
+              },
+              _avg: { totalProcessingTime: true },
+            }),
+          ]);
 
         // Get avg user points for department
         const deptUserPoints = await this.prisma.userPoints.aggregate({
@@ -285,7 +294,9 @@ export class AdminService {
           redListedFiles: redListCount,
           completedFiles: completedCount,
           avgProcessingTimeHours: avgProcessingTime._avg.totalProcessingTime
-            ? Math.round(avgProcessingTime._avg.totalProcessingTime / 3600 * 10) / 10
+            ? Math.round(
+                (avgProcessingTime._avg.totalProcessingTime / 3600) * 10,
+              ) / 10
             : null,
           avgUserPoints: Math.round(deptUserPoints._avg.currentPoints || 0),
         };
@@ -299,10 +310,7 @@ export class AdminService {
   async getSettings(departmentId?: string) {
     const where: any = {};
     if (departmentId) {
-      where.OR = [
-        { departmentId: null },
-        { departmentId },
-      ];
+      where.OR = [{ departmentId: null }, { departmentId }];
     }
 
     return this.prisma.systemSettings.findMany({ where });
@@ -331,9 +339,9 @@ export class AdminService {
   }
 
   // Get extension requests for admin view
-  async getExtensionRequests(departmentId: string | null, userRole: string) {
+  async getExtensionRequests(departmentId: string | null, userRoles: string[]) {
     const where: any = {};
-    if (userRole === 'DEPT_ADMIN' && departmentId) {
+    if (userRoles.includes('DEPT_ADMIN') && !userRoles.includes('SUPER_ADMIN') && departmentId) {
       where.file = { departmentId };
     }
 
@@ -355,9 +363,9 @@ export class AdminService {
   }
 
   // Get red listed files
-  async getRedListedFiles(departmentId: string | null, userRole: string) {
+  async getRedListedFiles(departmentId: string | null, userRoles: string[]) {
     const where: any = { isRedListed: true };
-    if (userRole === 'DEPT_ADMIN' && departmentId) {
+    if (userRoles.includes('DEPT_ADMIN') && !userRoles.includes('SUPER_ADMIN') && departmentId) {
       where.departmentId = departmentId;
     }
 
@@ -372,4 +380,3 @@ export class AdminService {
     });
   }
 }
-

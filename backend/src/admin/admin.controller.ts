@@ -1,9 +1,7 @@
 import {
   Controller,
   Get,
-  Post,
   Put,
-  Delete,
   Body,
   Param,
   Query,
@@ -13,14 +11,15 @@ import {
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { hasAnyRole, hasRole } from '../auth/auth.helpers';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard)
 export class AdminController {
   constructor(private adminService: AdminService) {}
 
-  private checkAdminAccess(userRole: string) {
-    if (!['SUPER_ADMIN', 'DEPT_ADMIN'].includes(userRole)) {
+  private checkAdminAccess(user: { roles?: string[] }) {
+    if (!hasAnyRole(user, ['SUPER_ADMIN', 'DEPT_ADMIN'])) {
       throw new ForbiddenException('Admin access required');
     }
   }
@@ -28,8 +27,11 @@ export class AdminController {
   // Get desk status (user presence)
   @Get('desk-status')
   async getDeskStatus(@Request() req) {
-    this.checkAdminAccess(req.user.role);
-    return this.adminService.getDeskStatus(req.user.departmentId, req.user.role);
+    this.checkAdminAccess(req.user);
+    return this.adminService.getDeskStatus(
+      req.user.departmentId,
+      req.user.roles ?? [],
+    );
   }
 
   // Get department files
@@ -43,14 +45,19 @@ export class AdminController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    this.checkAdminAccess(req.user.role);
+    this.checkAdminAccess(req.user);
     return this.adminService.getDepartmentFiles(
       req.user.departmentId,
-      req.user.role,
+      req.user.roles ?? [],
       {
         status,
         search,
-        isRedListed: isRedListed === 'true' ? true : isRedListed === 'false' ? false : undefined,
+        isRedListed:
+          isRedListed === 'true'
+            ? true
+            : isRedListed === 'false'
+              ? false
+              : undefined,
         assignedToId,
         page: page ? parseInt(page) : 1,
         limit: limit ? parseInt(limit) : 50,
@@ -61,14 +68,14 @@ export class AdminController {
   // Get analytics
   @Get('analytics')
   async getAnalytics(@Request() req) {
-    this.checkAdminAccess(req.user.role);
-    return this.adminService.getAnalytics(req.user.departmentId, req.user.role);
+    this.checkAdminAccess(req.user);
+    return this.adminService.getAnalytics(req.user.departmentId, req.user.roles ?? []);
   }
 
   // Get department-wise analytics (Super Admin only)
   @Get('analytics/departments')
   async getDepartmentWiseAnalytics(@Request() req) {
-    if (req.user.role !== 'SUPER_ADMIN') {
+    if (!hasRole(req.user, 'SUPER_ADMIN')) {
       throw new ForbiddenException('Super Admin access required');
     }
     return this.adminService.getDepartmentWiseAnalytics();
@@ -77,22 +84,29 @@ export class AdminController {
   // Get red listed files
   @Get('redlist')
   async getRedListedFiles(@Request() req) {
-    this.checkAdminAccess(req.user.role);
-    return this.adminService.getRedListedFiles(req.user.departmentId, req.user.role);
+    this.checkAdminAccess(req.user);
+    return this.adminService.getRedListedFiles(
+      req.user.departmentId,
+      req.user.roles ?? [],
+    );
   }
 
   // Get extension requests
   @Get('extension-requests')
   async getExtensionRequests(@Request() req) {
-    this.checkAdminAccess(req.user.role);
-    return this.adminService.getExtensionRequests(req.user.departmentId, req.user.role);
+    this.checkAdminAccess(req.user);
+    return this.adminService.getExtensionRequests(
+      req.user.departmentId,
+      req.user.roles ?? [],
+    );
   }
 
   // Get system settings
   @Get('settings')
   async getSettings(@Request() req) {
-    this.checkAdminAccess(req.user.role);
-    const departmentId = req.user.role === 'DEPT_ADMIN' ? req.user.departmentId : undefined;
+    this.checkAdminAccess(req.user);
+    const departmentId =
+      hasRole(req.user, 'DEPT_ADMIN') ? req.user.departmentId : undefined;
     return this.adminService.getSettings(departmentId);
   }
 
@@ -103,9 +117,14 @@ export class AdminController {
     @Param('key') key: string,
     @Body() body: { value: string },
   ) {
-    this.checkAdminAccess(req.user.role);
-    const departmentId = req.user.role === 'DEPT_ADMIN' ? req.user.departmentId : undefined;
-    return this.adminService.updateSetting(key, body.value, req.user.id, departmentId);
+    this.checkAdminAccess(req.user);
+    const departmentId =
+      hasRole(req.user, 'DEPT_ADMIN') ? req.user.departmentId : undefined;
+    return this.adminService.updateSetting(
+      key,
+      body.value,
+      req.user.id,
+      departmentId,
+    );
   }
 }
-

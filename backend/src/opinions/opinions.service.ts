@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MinIOService } from '../minio/minio.service';
@@ -34,8 +38,13 @@ export class OpinionsService {
     }
 
     // Check if user can request opinion (should be assigned to file or be creator)
-    if (file.assignedToId !== requestedById && file.createdById !== requestedById) {
-      throw new ForbiddenException('You are not authorized to request opinions for this file');
+    if (
+      file.assignedToId !== requestedById &&
+      file.createdById !== requestedById
+    ) {
+      throw new ForbiddenException(
+        'You are not authorized to request opinions for this file',
+      );
     }
 
     // Create opinion request
@@ -81,7 +90,7 @@ export class OpinionsService {
       // Notify department admin
       const deptAdmin = await this.prisma.user.findFirst({
         where: {
-          role: 'DEPT_ADMIN',
+          roles: { has: 'DEPT_ADMIN' },
           departmentId: data.requestedToDepartmentId,
         },
       });
@@ -177,9 +186,12 @@ export class OpinionsService {
 
     if (
       opinionRequest.requestedToDepartmentId !== user?.departmentId ||
-      (opinionRequest.requestedToDivisionId && opinionRequest.requestedToDivisionId !== user?.divisionId)
+      (opinionRequest.requestedToDivisionId &&
+        opinionRequest.requestedToDivisionId !== user?.divisionId)
     ) {
-      throw new ForbiddenException('You are not authorized to view this opinion request');
+      throw new ForbiddenException(
+        'You are not authorized to view this opinion request',
+      );
     }
 
     // Get notes - only current desk notes if special permission not granted
@@ -249,7 +261,9 @@ export class OpinionsService {
     });
 
     if (opinionRequest.requestedToDepartmentId !== user?.departmentId) {
-      throw new ForbiddenException('You are not authorized to add opinion notes');
+      throw new ForbiddenException(
+        'You are not authorized to add opinion notes',
+      );
     }
 
     return this.prisma.opinionNote.create({
@@ -294,7 +308,9 @@ export class OpinionsService {
     });
 
     if (opinionRequest.requestedToDepartmentId !== user?.departmentId) {
-      throw new ForbiddenException('You are not authorized to provide this opinion');
+      throw new ForbiddenException(
+        'You are not authorized to provide this opinion',
+      );
     }
 
     // Upload attachments if provided
@@ -369,7 +385,9 @@ export class OpinionsService {
     });
 
     if (opinionRequest.requestedToDepartmentId !== user?.departmentId) {
-      throw new ForbiddenException('You are not authorized to return this opinion');
+      throw new ForbiddenException(
+        'You are not authorized to return this opinion',
+      );
     }
 
     const updated = await this.prisma.opinionRequest.update({
@@ -404,4 +422,3 @@ export class OpinionsService {
     return updated;
   }
 }
-

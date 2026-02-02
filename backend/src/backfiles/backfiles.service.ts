@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MinIOService } from '../minio/minio.service';
 import { UserRole } from '@prisma/client';
@@ -13,7 +17,7 @@ export class BackFilesService {
   // Create/Scan back file
   async createBackFile(
     userId: string,
-    userRole: UserRole,
+    userRoles: string[],
     data: {
       fileNumber: string;
       subject: string;
@@ -34,7 +38,9 @@ export class BackFilesService {
     });
 
     if (existing) {
-      throw new ForbiddenException('Back file with this file number already exists');
+      throw new ForbiddenException(
+        'Back file with this file number already exists',
+      );
     }
 
     // Upload file if provided
@@ -64,7 +70,7 @@ export class BackFilesService {
     // Add tags if provided
     if (data.tags && data.tags.length > 0) {
       await Promise.all(
-        data.tags.map(tag =>
+        data.tags.map((tag) =>
           this.prisma.backFileTag.create({
             data: {
               backFileId: backFile.id,
@@ -138,7 +144,11 @@ export class BackFilesService {
   }
 
   // Get back files linked to a file
-  async getBackFilesForFile(fileId: string, userId: string, userRole: UserRole) {
+  async getBackFilesForFile(
+    fileId: string,
+    userId: string,
+    userRoles: string[],
+  ) {
     const file = await this.prisma.file.findUnique({
       where: { id: fileId },
     });
@@ -161,18 +171,15 @@ export class BackFilesService {
     });
 
     // Filter based on access roles
-    const accessibleBackFiles = links.filter(link => {
+    const accessibleBackFiles = links.filter((link) => {
       const backFile = link.backFile;
-      // Super admin can access all
-      if (userRole === UserRole.SUPER_ADMIN) return true;
-      // Check if user's role is in access roles
-      if (backFile.accessRoles.includes(userRole)) return true;
-      // Check if user is in same department
+      if (userRoles.includes(UserRole.SUPER_ADMIN)) return true;
+      if (backFile.accessRoles.some((r) => userRoles.includes(r))) return true;
       if (backFile.departmentId === file.departmentId) return true;
       return false;
     });
 
-    return accessibleBackFiles.map(link => ({
+    return accessibleBackFiles.map((link) => ({
       ...link.backFile,
       linkReason: link.linkReason,
       linkedBy: link.linkedBy,
@@ -235,7 +242,11 @@ export class BackFilesService {
   }
 
   // Get back file by ID
-  async getBackFileById(backFileId: string, userId: string, userRole: UserRole) {
+  async getBackFileById(
+    backFileId: string,
+    userId: string,
+    userRoles: string[],
+  ) {
     const backFile = await this.prisma.backFile.findUnique({
       where: { id: backFileId },
       include: {
@@ -260,8 +271,8 @@ export class BackFilesService {
     }
 
     // Check access
-    if (userRole !== UserRole.SUPER_ADMIN) {
-      if (!backFile.accessRoles.includes(userRole)) {
+    if (!userRoles.includes(UserRole.SUPER_ADMIN)) {
+      if (!backFile.accessRoles.some((r) => userRoles.includes(r))) {
         // Check if user is in same department
         const user = await this.prisma.user.findUnique({
           where: { id: userId },
@@ -269,7 +280,9 @@ export class BackFilesService {
         });
 
         if (user?.departmentId !== backFile.departmentId) {
-          throw new ForbiddenException('You do not have access to this back file');
+          throw new ForbiddenException(
+            'You do not have access to this back file',
+          );
         }
       }
     }
@@ -281,14 +294,16 @@ export class BackFilesService {
   async updateBackFileAccess(
     backFileId: string,
     userId: string,
-    userRole: UserRole,
+    userRoles: string[],
     data: {
       isHidden?: boolean;
       accessRoles?: string[];
     },
   ) {
-    if (userRole !== UserRole.SUPER_ADMIN && userRole !== UserRole.DEPT_ADMIN) {
-      throw new ForbiddenException('Only administrators can update back file access');
+    if (!userRoles.includes(UserRole.SUPER_ADMIN) && !userRoles.includes(UserRole.DEPT_ADMIN)) {
+      throw new ForbiddenException(
+        'Only administrators can update back file access',
+      );
     }
 
     return this.prisma.backFile.update({
@@ -345,17 +360,21 @@ export class BackFilesService {
   }
 
   // Download back file
-  async downloadBackFile(backFileId: string, userId: string, userRole: UserRole) {
-    const backFile = await this.getBackFileById(backFileId, userId, userRole);
+  async downloadBackFile(
+    backFileId: string,
+    userId: string,
+    userRoles: string[],
+  ) {
+    const backFile = await this.getBackFileById(backFileId, userId, userRoles);
 
     if (!backFile.s3Key) {
       throw new NotFoundException('Back file document not found');
     }
 
     const stream = await this.minio.getFileStream(backFile.s3Key);
-    const filename = backFile.s3Key.split('/').pop() || `backfile-${backFile.fileNumber}.pdf`;
+    const filename =
+      backFile.s3Key.split('/').pop() || `backfile-${backFile.fileNumber}.pdf`;
 
     return { stream, filename, mimeType: 'application/pdf' };
   }
 }
-

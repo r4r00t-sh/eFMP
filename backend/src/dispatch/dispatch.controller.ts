@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { FileUploadGuard } from '../security/file-upload.guard';
 import { DispatchService } from './dispatch.service';
 
 @Controller('dispatch')
@@ -37,7 +38,7 @@ export class DispatchController {
     return this.dispatchService.prepareForDispatch(
       body.fileId,
       req.user.id,
-      req.user.role,
+      req.user.roles ?? [],
       body.remarks,
     );
   }
@@ -49,7 +50,8 @@ export class DispatchController {
   @UseInterceptors(FileInterceptor('proofDocument'))
   async dispatchFile(
     @Request() req,
-    @Body() body: {
+    @Body()
+    body: {
       fileId: string;
       dispatchMethod: string;
       trackingNumber?: string;
@@ -64,12 +66,14 @@ export class DispatchController {
     // This is a simplified version - you can enhance it
     return this.dispatchService.dispatchFile(body.fileId, req.user.id, {
       ...body,
-      proofDocument: proofDocument ? {
-        buffer: proofDocument.buffer,
-        filename: proofDocument.originalname,
-        mimetype: proofDocument.mimetype,
-        size: proofDocument.size,
-      } : undefined,
+      proofDocument: proofDocument
+        ? {
+            buffer: proofDocument.buffer,
+            filename: proofDocument.originalname,
+            mimetype: proofDocument.mimetype,
+            size: proofDocument.size,
+          }
+        : undefined,
     });
   }
 
@@ -86,7 +90,8 @@ export class DispatchController {
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
   ) {
-    const departmentId = req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined;
+    const departmentId =
+      (req.user.roles ?? []).includes(UserRole.DEPT_ADMIN) ? req.user.departmentId : undefined;
     return this.dispatchService.getDispatchProofs(
       departmentId,
       dateFrom ? new Date(dateFrom) : undefined,
@@ -101,10 +106,11 @@ export class DispatchController {
     @Param('type') documentType: 'proof' | 'acknowledgement',
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { stream, filename } = await this.dispatchService.getDispatchProofDocument(
-      dispatchProofId,
-      documentType,
-    );
+    const { stream, filename } =
+      await this.dispatchService.getDispatchProofDocument(
+        dispatchProofId,
+        documentType,
+      );
 
     res.set({
       'Content-Type': 'application/octet-stream',
@@ -114,4 +120,3 @@ export class DispatchController {
     return new StreamableFile(stream as unknown as Readable);
   }
 }
-

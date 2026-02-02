@@ -7,4 +7,3 @@ import { MinIOService } from './minio.service';
   exports: [MinIOService],
 })
 export class MinIOModule {}
-

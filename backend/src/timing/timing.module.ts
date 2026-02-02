@@ -6,4 +6,3 @@ import { TimingService } from './timing.service';
   exports: [TimingService],
 })
 export class TimingModule {}
-

@@ -27,6 +27,8 @@ import { DispatchModule } from './dispatch/dispatch.module';
 import { PerformanceModule } from './performance/performance.module';
 import { BackFilesModule } from './backfiles/backfiles.module';
 import { SecurityModule } from './security/security.module';
+import { WorkflowModule } from './workflow/workflow.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -58,6 +60,8 @@ import { SecurityModule } from './security/security.module';
     DispatchModule,
     PerformanceModule,
     BackFilesModule,
+    WorkflowModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

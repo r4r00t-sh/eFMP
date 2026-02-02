@@ -12,4 +12,3 @@ import { RabbitMQModule } from '../rabbitmq/rabbitmq.module';
   exports: [NotificationsService],
 })
 export class NotificationsModule {}
-

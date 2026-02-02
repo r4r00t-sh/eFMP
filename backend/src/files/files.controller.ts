@@ -26,7 +26,8 @@ export class FilesController {
   @UseInterceptors(FilesInterceptor('files', 10)) // Allow up to 10 files
   async createFile(
     @Request() req,
-    @Body() body: {
+    @Body()
+    body: {
       subject: string;
       description?: string;
       departmentId: string;
@@ -42,7 +43,7 @@ export class FilesController {
       divisionId: body.divisionId,
       priority: body.priority as any,
       dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
-      files: files?.map(file => ({
+      files: files?.map((file) => ({
         buffer: file.buffer,
         filename: file.originalname,
         mimetype: file.mimetype,
@@ -61,14 +62,14 @@ export class FilesController {
   ) {
     return this.filesService.getAllFiles(
       req.user.id,
-      req.user.role,
+      req.user.roles ?? [],
       req.user.departmentId,
       {
         status,
         search,
         page: page ? parseInt(page) : 1,
         limit: limit ? parseInt(limit) : 50,
-      }
+      },
     );
   }
 
@@ -87,14 +88,14 @@ export class FilesController {
     @UploadedFiles() files: Express.Multer.File[],
   ) {
     const results = await Promise.all(
-      files.map(file => 
+      files.map((file) =>
         this.filesService.addAttachment(id, req.user.id, {
           buffer: file.buffer,
           filename: file.originalname,
           mimetype: file.mimetype,
           size: file.size,
-        })
-      )
+        }),
+      ),
     );
     return { attachments: results };
   }
@@ -136,7 +137,12 @@ export class FilesController {
     @Request() req,
     @Body() body: { action: string; remarks?: string },
   ) {
-    return this.filesService.performAction(id, req.user.id, body.action, body.remarks);
+    return this.filesService.performAction(
+      id,
+      req.user.id,
+      body.action,
+      body.remarks,
+    );
   }
 
   @Post(':id/request-extra-time')
@@ -145,7 +151,12 @@ export class FilesController {
     @Request() req,
     @Body() body: { additionalDays: number; reason?: string },
   ) {
-    return this.filesService.requestExtraTime(id, req.user.id, body.additionalDays, body.reason);
+    return this.filesService.requestExtraTime(
+      id,
+      req.user.id,
+      body.additionalDays,
+      body.reason,
+    );
   }
 
   @Get(':id/extension-requests')
@@ -164,7 +175,12 @@ export class FilesController {
     @Request() req,
     @Body() body: { remarks?: string },
   ) {
-    return this.filesService.approveExtension(requestId, req.user.id, true, body.remarks);
+    return this.filesService.approveExtension(
+      requestId,
+      req.user.id,
+      true,
+      body.remarks,
+    );
   }
 
   @Post('extension-requests/:requestId/deny')
@@ -173,7 +189,12 @@ export class FilesController {
     @Request() req,
     @Body() body: { remarks?: string },
   ) {
-    return this.filesService.approveExtension(requestId, req.user.id, false, body.remarks);
+    return this.filesService.approveExtension(
+      requestId,
+      req.user.id,
+      false,
+      body.remarks,
+    );
   }
 
   @Post(':id/recall')
@@ -182,6 +203,11 @@ export class FilesController {
     @Request() req,
     @Body() body: { remarks?: string },
   ) {
-    return this.filesService.recallFile(id, req.user.id, req.user.role, body.remarks);
+    return this.filesService.recallFile(
+      id,
+      req.user.id,
+      req.user.roles ?? [],
+      body.remarks,
+    );
   }
 }

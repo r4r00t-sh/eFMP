@@ -1,10 +1,19 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MinIOService } from '../minio/minio.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private minio: MinIOService,
+  ) {}
 
   async getAllUsers(filters?: {
     departmentId?: string;
@@ -18,7 +27,7 @@ export class UsersService {
     }
 
     if (filters?.role) {
-      where.role = filters.role;
+      where.roles = { has: filters.role as any };
     }
 
     if (filters?.search) {
@@ -36,8 +45,9 @@ export class UsersService {
         username: true,
         name: true,
         email: true,
-        role: true,
+        roles: true,
         isActive: true,
+        avatarKey: true,
         createdAt: true,
         department: { select: { id: true, name: true, code: true } },
         division: { select: { id: true, name: true } },
@@ -55,8 +65,9 @@ export class UsersService {
         username: true,
         name: true,
         email: true,
-        role: true,
+        roles: true,
         isActive: true,
+        avatarKey: true,
         createdAt: true,
         updatedAt: true,
         department: { select: { id: true, name: true, code: true } },
@@ -79,12 +90,76 @@ export class UsersService {
     return user;
   }
 
+  async uploadAvatar(userId: string, file: { buffer: Buffer; mimetype: string }) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      throw new BadRequestException('Invalid image type. Use JPEG, PNG, GIF, or WebP.');
+    }
+
+    if (file.buffer.length > 2 * 1024 * 1024) {
+      throw new BadRequestException('Image must be less than 2MB.');
+    }
+
+    const ext = file.mimetype.split('/')[1] || 'jpg';
+    const objectName = await this.minio.uploadFile(
+      `avatar-${userId}-${Date.now()}.${ext}`,
+      file.buffer,
+      file.mimetype,
+    );
+
+    if (user.avatarKey) {
+      try {
+        await this.minio.deleteFile(user.avatarKey);
+      } catch {
+        // Ignore if old file doesn't exist
+      }
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarKey: objectName },
+    });
+
+    return { avatarKey: objectName };
+  }
+
+  async getAvatarUrl(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarKey: true },
+    });
+    if (!user?.avatarKey) return null;
+    return this.minio.getFileUrl(user.avatarKey, 3600);
+  }
+
+  async getAvatarStream(userId: string): Promise<{ stream: NodeJS.ReadableStream; contentType: string } | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarKey: true },
+    });
+    if (!user?.avatarKey) return null;
+    const stream = await this.minio.getFileStream(user.avatarKey);
+    const ext = user.avatarKey.split('.').pop()?.toLowerCase() || 'jpg';
+    const mimeMap: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      webp: 'image/webp',
+    };
+    const contentType = mimeMap[ext] || 'image/jpeg';
+    return { stream, contentType };
+  }
+
   async createUser(data: {
     username: string;
     password: string;
     name: string;
     email?: string;
-    role: string;
+    roles: string[];
     departmentId?: string;
     divisionId?: string;
   }) {
@@ -98,6 +173,7 @@ export class UsersService {
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);
+    const roles = (data.roles?.length ? data.roles : ['USER']) as any[];
 
     const user = await this.prisma.user.create({
       data: {
@@ -105,7 +181,7 @@ export class UsersService {
         passwordHash,
         name: data.name,
         email: data.email,
-        role: data.role as any,
+        roles,
         departmentId: data.departmentId,
         divisionId: data.divisionId,
       },
@@ -114,7 +190,7 @@ export class UsersService {
         username: true,
         name: true,
         email: true,
-        role: true,
+        roles: true,
         isActive: true,
         department: { select: { id: true, name: true } },
         division: { select: { id: true, name: true } },
@@ -133,21 +209,26 @@ export class UsersService {
     return user;
   }
 
-  async updateUser(id: string, data: {
-    name?: string;
-    email?: string;
-    role?: string;
-    departmentId?: string;
-    divisionId?: string;
-    isActive?: boolean;
-  }) {
+  async updateUser(
+    id: string,
+    data: {
+      name?: string;
+      email?: string;
+      roles?: string[];
+      departmentId?: string;
+      divisionId?: string;
+      isActive?: boolean;
+    },
+  ) {
     return this.prisma.user.update({
       where: { id },
       data: {
         ...(data.name && { name: data.name }),
         ...(data.email !== undefined && { email: data.email }),
-        ...(data.role && { role: data.role as any }),
-        ...(data.departmentId !== undefined && { departmentId: data.departmentId }),
+        ...(data.roles && data.roles.length > 0 && { roles: data.roles as any }),
+        ...(data.departmentId !== undefined && {
+          departmentId: data.departmentId,
+        }),
         ...(data.divisionId !== undefined && { divisionId: data.divisionId }),
         ...(data.isActive !== undefined && { isActive: data.isActive }),
       },
@@ -156,7 +237,7 @@ export class UsersService {
         username: true,
         name: true,
         email: true,
-        role: true,
+        roles: true,
         isActive: true,
         department: { select: { id: true, name: true } },
         division: { select: { id: true, name: true } },
@@ -164,7 +245,11 @@ export class UsersService {
     });
   }
 
-  async changePassword(id: string, currentPassword: string, newPassword: string) {
+  async changePassword(
+    id: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id },
     });
@@ -179,7 +264,7 @@ export class UsersService {
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
-    
+
     await this.prisma.user.update({
       where: { id },
       data: { passwordHash },
@@ -190,7 +275,7 @@ export class UsersService {
 
   async resetPassword(id: string, newPassword: string) {
     const passwordHash = await bcrypt.hash(newPassword, 10);
-    
+
     await this.prisma.user.update({
       where: { id },
       data: { passwordHash },
@@ -205,5 +290,73 @@ export class UsersService {
       data: { isActive: false },
     });
   }
-}
 
+  async getAuditLogs(userId: string, limit = 50) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    return this.prisma.auditLog.findMany({
+      where: { userId },
+      include: {
+        file: { select: { id: true, fileNumber: true, subject: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  }
+
+  async getActivity(userId: string, limit = 50) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const routing = await this.prisma.fileRouting.findMany({
+      where: {
+        OR: [{ fromUserId: userId }, { toUserId: userId }],
+      },
+      include: {
+        file: {
+          select: { id: true, fileNumber: true, subject: true, status: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    return routing;
+  }
+
+  async getPresence(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const presence = await this.prisma.presence.findUnique({
+      where: { userId },
+    });
+
+    const HEARTBEAT_TIMEOUT = 3 * 60 * 1000;
+    let status = 'ABSENT';
+    let statusLabel = 'Offline';
+
+    if (presence) {
+      const timeSincePing = Date.now() - presence.lastPing.getTime();
+      if (timeSincePing <= HEARTBEAT_TIMEOUT) {
+        status = presence.status;
+        statusLabel =
+          presence.status === 'ACTIVE'
+            ? 'Active'
+            : presence.status === 'SESSION_TIMEOUT'
+              ? 'Session Expired'
+              : 'Offline';
+      }
+    }
+
+    return {
+      status,
+      statusLabel,
+      lastPing: presence?.lastPing,
+      loginTime: presence?.loginTime,
+      logoutTime: presence?.logoutTime,
+      logoutType: presence?.logoutType,
+    };
+  }
+}

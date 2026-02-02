@@ -3,6 +3,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { SecurityService } from './security.service';
+import { FileUploadGuard } from './file-upload.guard';
 
 @Module({
   imports: [
@@ -21,12 +22,12 @@ import { SecurityService } from './security.service';
   ],
   providers: [
     SecurityService,
+    FileUploadGuard,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
   ],
-  exports: [SecurityService],
+  exports: [SecurityService, FileUploadGuard],
 })
 export class SecurityModule {}
-

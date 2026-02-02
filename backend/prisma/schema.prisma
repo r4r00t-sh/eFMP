@@ -12,6 +12,7 @@ datasource db {
 enum UserRole {
   SUPER_ADMIN
   DEPT_ADMIN
+  CHAT_MANAGER       // Can create groups and add members (delegated from admin)
   APPROVAL_AUTHORITY
   SECTION_OFFICER
   INWARD_DESK
@@ -73,6 +74,8 @@ model Department {
   opinionRequestsFrom OpinionRequest[] @relation("OpinionRequestedFrom")
   opinionRequestsTo   OpinionRequest[] @relation("OpinionRequestedTo")
   backFiles   BackFile[]
+  workflows   Workflow[]
+  chatConversations ChatConversation[]
 }
 
 model Division {
@@ -95,12 +98,13 @@ model User {
   email        String?     // Optional email for notifications
   name         String
   passwordHash String
-  role         UserRole    @default(USER)
+  roles        UserRole[]  @default([USER])
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   divisionId   String?
   division     Division?   @relation(fields: [divisionId], references: [id], onDelete: SetNull)
   isActive     Boolean     @default(true)
+  avatarKey    String?     // MinIO object key for profile avatar
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   filesCreated File[]      @relation("FileCreator")
@@ -118,6 +122,14 @@ model User {
   coinTransactions CoinTransaction[]
   redFlags RedFlag[] @relation("UserRedFlags")
   linkedBackFiles FileBackFileLink[] @relation("LinkedBy")
+  workflowsCreated Workflow[] @relation("WorkflowCreatedBy")
+  workflowsPublished Workflow[] @relation("WorkflowPublishedBy")
+  workflowSteps WorkflowExecutionStep[]
+  // Chat
+  conversationsCreated ChatConversation[] @relation("ChatConversationCreatedBy")
+  chatMemberships ChatConversationMember[]
+  chatMessagesSent ChatMessage[]
+  chatReadReceipts ChatReadReceipt[]
 }
 
 model File {
@@ -176,6 +188,7 @@ model File {
   redFlags RedFlag[] @relation("FileRedFlags")
   backFileLinks FileBackFileLink[] @relation("FileBackFileLinks")
   hasBackFiles Boolean @default(false) // Indicator: file has linked back files
+  workflowExecutions WorkflowExecution[]
 }
 
 // File Attachments - Support multiple file uploads
@@ -868,4 +881,272 @@ model BackFileTag {
   
   @@index([backFileId])
   @@index([tagName])
+}
+
+// ============================================
+// CUSTOM WORKFLOW BUILDER
+// ============================================
+
+// Workflow Definition - The main workflow configuration
+model Workflow {
+  id              String   @id @default(uuid())
+  name            String
+  code            String   @unique
+  description     String?  @db.Text
+  version         Int      @default(1)
+  
+  // Scope
+  departmentId    String?  // Null = global workflow
+  department      Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  
+  // File type this workflow applies to
+  fileType        String?  // "correspondence", "application", etc.
+  priorityCategory String? // "ROUTINE", "URGENT", "IMMEDIATE", "PROJECT"
+  
+  // Status
+  isActive        Boolean  @default(false)
+  isPublished     Boolean  @default(false)
+  isDraft         Boolean  @default(true)
+  
+  // Metadata
+  createdById     String
+  createdBy       User     @relation("WorkflowCreatedBy", fields: [createdById], references: [id])
+  publishedById   String?
+  publishedBy     User?    @relation("WorkflowPublishedBy", fields: [publishedById], references: [id])
+  publishedAt     DateTime?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  nodes           WorkflowNode[]
+  edges           WorkflowEdge[]
+  executions      WorkflowExecution[]
+  
+  @@index([code])
+  @@index([departmentId])
+  @@index([isActive])
+  @@index([fileType])
+}
+
+// Workflow Node - Individual steps in the workflow
+model WorkflowNode {
+  id              String   @id @default(uuid())
+  workflowId      String
+  workflow        Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  
+  // Node identification
+  nodeId          String   // Unique within workflow (e.g., "start", "inward_desk", "approval")
+  nodeType        String   // "start", "task", "decision", "end", "parallel", "merge"
+  label           String   // Display name
+  description     String?  @db.Text
+  
+  // Task configuration (for task nodes)
+  assigneeType    String?  // "role", "user", "department", "division", "dynamic"
+  assigneeValue   String?  // Role name, user ID, department ID, etc.
+  
+  // Time limits (for task nodes)
+  timeLimit       Int?     // Seconds allowed for this task
+  timeLimitType   String?  // "fixed", "business_days", "calendar_days"
+  
+  // Actions available at this node
+  availableActions Json?   // Array of actions: ["approve", "reject", "forward", "return", etc.]
+  
+  // Conditions (for decision nodes)
+  conditions      Json?    // Array of condition objects
+  
+  // Visual positioning (for UI)
+  positionX       Float?
+  positionY       Float?
+  
+  // Metadata
+  config          Json?    // Additional configuration
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  outgoingEdges   WorkflowEdge[] @relation("EdgeSource")
+  incomingEdges   WorkflowEdge[] @relation("EdgeTarget")
+  
+  @@unique([workflowId, nodeId])
+  @@index([workflowId])
+  @@index([nodeType])
+}
+
+// Workflow Edge - Connections between nodes
+model WorkflowEdge {
+  id              String   @id @default(uuid())
+  workflowId      String
+  workflow        Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  
+  // Connection
+  sourceNodeId    String
+  sourceNode      WorkflowNode @relation("EdgeSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNodeId    String
+  targetNode      WorkflowNode @relation("EdgeTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  
+  // Edge label/condition
+  label           String?  // "Approved", "Rejected", "Yes", "No", etc.
+  condition       Json?    // Condition that must be met for this edge
+  
+  // Priority (for multiple edges from same node)
+  priority        Int      @default(0)
+  
+  // Visual styling
+  style           Json?    // Line style, color, etc.
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([workflowId])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+}
+
+// Workflow Execution - Track workflow instances for files
+model WorkflowExecution {
+  id              String   @id @default(uuid())
+  workflowId      String
+  workflow        Workflow @relation(fields: [workflowId], references: [id])
+  
+  fileId          String
+  file            File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  
+  // Current state
+  currentNodeId   String?  // Current node in workflow
+  status          String   @default("running") // "running", "completed", "failed", "paused"
+  
+  // Execution data
+  variables       Json?    // Workflow variables (e.g., approval count, opinions collected)
+  
+  // Timestamps
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  pausedAt        DateTime?
+  
+  // Relations
+  steps           WorkflowExecutionStep[]
+  
+  @@index([workflowId])
+  @@index([fileId])
+  @@index([status])
+}
+
+// Workflow Execution Step - Individual step executions
+model WorkflowExecutionStep {
+  id              String   @id @default(uuid())
+  executionId     String
+  execution       WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  
+  nodeId          String   // Which node was executed
+  nodeName        String   // Cached node name
+  
+  // Execution details
+  action          String?  // Action taken at this step
+  performedById   String?
+  performedBy     User?    @relation(fields: [performedById], references: [id], onDelete: SetNull)
+  
+  // Results
+  result          String?  // "approved", "rejected", "completed", etc.
+  output          Json?    // Output data from this step
+  remarks         String?  @db.Text
+  
+  // Timing
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  duration        Int?     // Seconds taken
+  
+  @@index([executionId])
+  @@index([nodeId])
+}
+
+// Workflow Template - Pre-built workflow templates
+model WorkflowTemplate {
+  id              String   @id @default(uuid())
+  name            String
+  code            String   @unique
+  description     String?  @db.Text
+  category        String   // "approval", "consultation", "dispatch", etc.
+
+  // Template data (JSON representation of workflow)
+  templateData    Json     // Complete workflow definition
+
+  // Metadata
+  isPublic        Boolean  @default(true)
+  usageCount      Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([category])
+  @@index([isPublic])
+}
+
+// ============================================
+// CHAT SYSTEM (DMs + Groups)
+// ============================================
+
+enum ChatConversationType {
+  DM
+  GROUP
+}
+
+model ChatConversation {
+  id              String   @id @default(uuid())
+  type            ChatConversationType
+  name            String?  // For groups only
+  description     String?  @db.Text // For groups
+  departmentId    String?  // Optional: scope group to department
+  department      Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdById     String
+  createdBy       User     @relation("ChatConversationCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  lastMessageAt   DateTime?
+  members         ChatConversationMember[]
+  messages        ChatMessage[]
+  @@index([type])
+  @@index([departmentId])
+  @@index([lastMessageAt])
+}
+
+model ChatConversationMember {
+  id              String   @id @default(uuid())
+  conversationId  String
+  conversation    ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role            String   @default("member") // "member", "admin" (for groups)
+  joinedAt        DateTime @default(now())
+  lastReadAt      DateTime?
+  @@unique([conversationId, userId])
+  @@index([conversationId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id              String   @id @default(uuid())
+  conversationId  String
+  conversation    ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId        String
+  sender          User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content         String   @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  readReceipts   ChatReadReceipt[]
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+model ChatReadReceipt {
+  id              String   @id @default(uuid())
+  messageId       String
+  message         ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt          DateTime @default(now())
+  @@unique([messageId, userId])
+  @@index([messageId])
+  @@index([userId])
 }

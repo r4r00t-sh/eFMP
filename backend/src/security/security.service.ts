@@ -21,7 +21,7 @@ export class SecurityService {
         },
       },
       crossOriginEmbedderPolicy: false,
-      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginResourcePolicy: { policy: 'cross-origin' as const },
       hsts: {
         maxAge: 31536000,
         includeSubDomains: true,
@@ -40,17 +40,26 @@ export class SecurityService {
       .map((origin) => origin.trim());
 
     return {
-      origin: (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
+      origin: (
+        origin: string,
+        callback: (err: Error | null, allow?: boolean) => void,
+      ) => {
+        // Allow requests with no origin (e.g. native Flutter Android/iOS app, curl, Postman).
+        // CORS is a browser feature; native apps don't send Origin, so they're allowed regardless of client IP.
         if (!origin) {
           return callback(null, true);
         }
 
         if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-          callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS'));
+          return callback(null, true);
         }
+
+        // Always allow localhost / 127.0.0.1 (any port) for local dev and Flutter web
+        if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) {
+          return callback(null, true);
+        }
+
+        callback(new Error('Not allowed by CORS'));
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -94,8 +103,14 @@ export class SecurityService {
       .trim();
   }
 
-  validateFileUpload(file: Express.Multer.File): { valid: boolean; error?: string } {
-    const maxSize = this.configService.get<number>('MAX_FILE_SIZE', 10 * 1024 * 1024); // 10MB default
+  validateFileUpload(file: Express.Multer.File): {
+    valid: boolean;
+    error?: string;
+  } {
+    const maxSize = this.configService.get<number>(
+      'MAX_FILE_SIZE',
+      10 * 1024 * 1024,
+    ); // 10MB default
     const allowedMimeTypes = this.configService
       .get<string>(
         'ALLOWED_FILE_TYPES',
@@ -119,7 +134,16 @@ export class SecurityService {
     }
 
     // Check for dangerous file extensions
-    const dangerousExtensions = ['.exe', '.bat', '.cmd', '.com', '.pif', '.scr', '.vbs', '.js'];
+    const dangerousExtensions = [
+      '.exe',
+      '.bat',
+      '.cmd',
+      '.com',
+      '.pif',
+      '.scr',
+      '.vbs',
+      '.js',
+    ];
     const fileExtension = file.originalname
       .toLowerCase()
       .substring(file.originalname.lastIndexOf('.'));
@@ -133,4 +157,3 @@ export class SecurityService {
     return { valid: true };
   }
 }
-

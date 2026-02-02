@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import * as amqp from 'amqplib';
 
 // Toast types for the system
-export type ToastType = 
+export type ToastType =
   | 'file_received'
   | 'time_request'
   | 'time_approved'
@@ -30,7 +30,10 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   constructor(private configService: ConfigService) {}
 
   async onModuleInit() {
-    const url = this.configService.get<string>('RABBITMQ_URL', 'amqp://efiling:efiling123@localhost:5672');
+    const url = this.configService.get<string>(
+      'RABBITMQ_URL',
+      'amqp://efiling:efiling123@localhost:5672',
+    );
     this.connection = await amqp.connect(url);
     this.channel = await this.connection.createChannel();
     await this.channel.assertQueue(this.queueName, { durable: true });
@@ -56,18 +59,16 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     await this.channel.sendToQueue(
       this.queueName,
       Buffer.from(JSON.stringify(toast)),
-      { persistent: true }
+      { persistent: true },
     );
   }
 
   // Generic publish to any queue
   async publish(queue: string, data: any): Promise<void> {
     await this.channel.assertQueue(queue, { durable: true });
-    await this.channel.sendToQueue(
-      queue,
-      Buffer.from(JSON.stringify(data)),
-      { persistent: true }
-    );
+    await this.channel.sendToQueue(queue, Buffer.from(JSON.stringify(data)), {
+      persistent: true,
+    });
   }
 
   async consumeToasts(callback: (toast: any) => Promise<void>): Promise<void> {
@@ -80,7 +81,9 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  async consumeNotifications(callback: (notification: any) => Promise<void>): Promise<void> {
+  async consumeNotifications(
+    callback: (notification: any) => Promise<void>,
+  ): Promise<void> {
     await this.channel.consume(this.notificationsQueue, async (msg) => {
       if (msg) {
         const notification = JSON.parse(msg.content.toString());
@@ -90,4 +93,3 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     });
   }
 }
-

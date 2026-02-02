@@ -128,7 +128,8 @@ export class NotificationsService {
     });
 
     const hours = Math.floor(additionalTime / 3600);
-    const timeStr = hours > 24 ? `${Math.floor(hours / 24)} days` : `${hours} hours`;
+    const timeStr =
+      hours > 24 ? `${Math.floor(hours / 24)} days` : `${hours} hours`;
 
     return this.createNotification({
       userId: approverId,
@@ -195,10 +196,7 @@ export class NotificationsService {
     // Get dept admin and super admin
     const admins = await this.prisma.user.findMany({
       where: {
-        OR: [
-          { role: 'SUPER_ADMIN' },
-          { role: 'DEPT_ADMIN', departmentId },
-        ],
+        OR: [{ roles: { has: 'SUPER_ADMIN' } }, { roles: { has: 'DEPT_ADMIN' }, departmentId }],
         isActive: true,
       },
       select: { id: true },
@@ -237,10 +235,7 @@ export class NotificationsService {
 
     const admins = await this.prisma.user.findMany({
       where: {
-        OR: [
-          { role: 'SUPER_ADMIN' },
-          { role: 'DEPT_ADMIN', departmentId },
-        ],
+        OR: [{ roles: { has: 'SUPER_ADMIN' } }, { roles: { has: 'DEPT_ADMIN' }, departmentId }],
         isActive: true,
       },
       select: { id: true },
@@ -259,4 +254,3 @@ export class NotificationsService {
     }
   }
 }
-

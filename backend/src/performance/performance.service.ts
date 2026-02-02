@@ -29,7 +29,9 @@ export class PerformanceService {
   // Get default config values
   private async getDefaultConfig() {
     const highVolumeThreshold = await this.getConfig('high_volume_threshold');
-    const highMomentumThreshold = await this.getConfig('high_momentum_threshold');
+    const highMomentumThreshold = await this.getConfig(
+      'high_momentum_threshold',
+    );
     const optimumHours = await this.getConfig('optimum_hours_per_day');
     const coinThreshold = await this.getConfig('coin_threshold_warning');
     const filesPerDayOptimum = await this.getConfig('files_per_day_optimum');
@@ -131,7 +133,11 @@ export class PerformanceService {
   }
 
   // Deduct coins for red flag
-  async deductCoinsForRedFlag(userId: string, fileId: string, flagType: string) {
+  async deductCoinsForRedFlag(
+    userId: string,
+    fileId: string,
+    flagType: string,
+  ) {
     const config = await this.getDefaultConfig();
     const deduction = 20; // Fixed deduction per red flag
 
@@ -173,7 +179,12 @@ export class PerformanceService {
   }
 
   // Track working hours
-  async logWorkingHours(userId: string, date: Date, hours: number, isManual: boolean = false) {
+  async logWorkingHours(
+    userId: string,
+    date: Date,
+    hours: number,
+    isManual: boolean = false,
+  ) {
     const dateOnly = new Date(date);
     dateOnly.setHours(0, 0, 0, 0);
 
@@ -234,7 +245,7 @@ export class PerformanceService {
     });
 
     // Estimate hours (rough calculation: 1 file = 0.5 hours average)
-    const estimatedHours = (filesProcessed * 0.5) + (filesCreated * 0.3);
+    const estimatedHours = filesProcessed * 0.5 + filesCreated * 0.3;
 
     await this.prisma.workingHours.upsert({
       where: {
@@ -401,7 +412,11 @@ export class PerformanceService {
 
     // Deduct coins if user red flag
     if (data.userId) {
-      await this.deductCoinsForRedFlag(data.userId, data.fileId || '', data.flagType);
+      await this.deductCoinsForRedFlag(
+        data.userId,
+        data.fileId || '',
+        data.flagType,
+      );
     }
 
     // Check red flag threshold
@@ -485,12 +500,19 @@ export class PerformanceService {
 
     // Calculate total earned from positive transactions
     const totalEarned = coins
-      .filter(t => t.amount > 0)
+      .filter((t) => t.amount > 0)
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const totalHours = workingHours.reduce((sum, wh) => sum + wh.hoursWorked, 0);
-    const avgHours = workingHours.length > 0 ? totalHours / workingHours.length : 0;
-    const totalFilesProcessed = workingHours.reduce((sum, wh) => sum + wh.filesProcessed, 0);
+    const totalHours = workingHours.reduce(
+      (sum, wh) => sum + wh.hoursWorked,
+      0,
+    );
+    const avgHours =
+      workingHours.length > 0 ? totalHours / workingHours.length : 0;
+    const totalFilesProcessed = workingHours.reduce(
+      (sum, wh) => sum + wh.filesProcessed,
+      0,
+    );
 
     return {
       currentCoins: userPoints?.currentPoints || 0,
@@ -539,7 +561,11 @@ export class PerformanceService {
   }
 
   // Resolve red flag
-  async resolveRedFlag(flagId: string, resolvedBy: string, resolutionNote?: string) {
+  async resolveRedFlag(
+    flagId: string,
+    resolvedBy: string,
+    resolutionNote?: string,
+  ) {
     return this.prisma.redFlag.update({
       where: { id: flagId },
       data: {
@@ -551,4 +577,3 @@ export class PerformanceService {
     });
   }
 }
-

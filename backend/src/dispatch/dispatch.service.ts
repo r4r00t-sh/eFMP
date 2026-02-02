@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MinIOService } from '../minio/minio.service';
@@ -16,7 +20,7 @@ export class DispatchService {
   async prepareForDispatch(
     fileId: string,
     userId: string,
-    userRole: UserRole,
+    userRoles: string[],
     remarks?: string,
   ) {
     const file = await this.prisma.file.findUnique({
@@ -29,11 +33,13 @@ export class DispatchService {
 
     // Only admins or dispatchers can prepare for dispatch
     if (
-      userRole !== UserRole.SUPER_ADMIN &&
-      userRole !== UserRole.DEPT_ADMIN &&
-      userRole !== UserRole.DISPATCHER
+      !userRoles.includes(UserRole.SUPER_ADMIN) &&
+      !userRoles.includes(UserRole.DEPT_ADMIN) &&
+      !userRoles.includes(UserRole.DISPATCHER)
     ) {
-      throw new ForbiddenException('Only administrators or dispatchers can prepare files for dispatch');
+      throw new ForbiddenException(
+        'Only administrators or dispatchers can prepare files for dispatch',
+      );
     }
 
     // Create routing history
@@ -49,7 +55,7 @@ export class DispatchService {
     // Notify dispatcher
     const dispatcher = await this.prisma.user.findFirst({
       where: {
-        role: UserRole.DISPATCHER,
+        roles: { has: UserRole.DISPATCHER },
         departmentId: file.departmentId,
       },
     });
@@ -106,7 +112,10 @@ export class DispatchService {
       where: { id: userId },
     });
 
-    if (user?.role !== UserRole.DISPATCHER && user?.role !== UserRole.SUPER_ADMIN) {
+    if (
+      !user?.roles?.includes(UserRole.DISPATCHER) &&
+      !user?.roles?.includes(UserRole.SUPER_ADMIN)
+    ) {
       throw new ForbiddenException('Only dispatchers can dispatch files');
     }
 
@@ -172,7 +181,7 @@ export class DispatchService {
     // Notify department admin
     const deptAdmin = await this.prisma.user.findFirst({
       where: {
-        role: UserRole.DEPT_ADMIN,
+        roles: { has: UserRole.DEPT_ADMIN },
         departmentId: file.departmentId,
       },
     });
@@ -216,7 +225,11 @@ export class DispatchService {
   }
 
   // Get all dispatch proofs (for tracking)
-  async getDispatchProofs(departmentId?: string, dateFrom?: Date, dateTo?: Date) {
+  async getDispatchProofs(
+    departmentId?: string,
+    dateFrom?: Date,
+    dateTo?: Date,
+  ) {
     const where: any = {};
     if (departmentId) {
       where.file = { departmentId };
@@ -245,7 +258,10 @@ export class DispatchService {
   }
 
   // Download dispatch proof document
-  async getDispatchProofDocument(dispatchProofId: string, documentType: 'proof' | 'acknowledgement') {
+  async getDispatchProofDocument(
+    dispatchProofId: string,
+    documentType: 'proof' | 'acknowledgement',
+  ) {
     const proof = await this.prisma.dispatchProof.findUnique({
       where: { id: dispatchProofId },
     });
@@ -254,9 +270,10 @@ export class DispatchService {
       throw new NotFoundException('Dispatch proof not found');
     }
 
-    const s3Key = documentType === 'proof'
-      ? proof.proofDocumentS3Key
-      : proof.acknowledgementS3Key;
+    const s3Key =
+      documentType === 'proof'
+        ? proof.proofDocumentS3Key
+        : proof.acknowledgementS3Key;
 
     if (!s3Key) {
       throw new NotFoundException(`${documentType} document not found`);
@@ -268,4 +285,3 @@ export class DispatchService {
     return { stream, filename };
   }
 }
-

@@ -27,7 +27,8 @@ export class DesksController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.DEPT_ADMIN)
   async createDesk(
     @Request() req,
-    @Body() body: {
+    @Body()
+    body: {
       name: string;
       code: string;
       description?: string;
@@ -37,7 +38,7 @@ export class DesksController {
       iconType?: string;
     },
   ) {
-    return this.desksService.createDesk(req.user.id, req.user.role, body);
+    return this.desksService.createDesk(req.user.id, req.user.roles ?? [], body);
   }
 
   // Get all desks
@@ -47,7 +48,11 @@ export class DesksController {
     @Query('departmentId') departmentId?: string,
     @Query('divisionId') divisionId?: string,
   ) {
-    const deptId = departmentId || (req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined);
+    const deptId =
+      departmentId ||
+      ((req.user.roles ?? []).includes(UserRole.DEPT_ADMIN)
+        ? req.user.departmentId
+        : undefined);
     return this.desksService.getDesks(deptId, divisionId);
   }
 
@@ -60,7 +65,8 @@ export class DesksController {
   // Get desk workload summary
   @Get('workload/summary')
   async getDeskWorkloadSummary(@Request() req) {
-    const departmentId = req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined;
+    const departmentId =
+      (req.user.roles ?? []).includes(UserRole.DEPT_ADMIN) ? req.user.departmentId : undefined;
     return this.desksService.getDeskWorkloadSummary(departmentId);
   }
 
@@ -74,7 +80,7 @@ export class DesksController {
       body.fileId,
       body.deskId,
       req.user.id,
-      req.user.role,
+      req.user.roles ?? [],
     );
   }
 
@@ -92,11 +98,15 @@ export class DesksController {
     @Request() req,
     @Body() body: { divisionId?: string },
   ) {
-    const departmentId = req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined;
+    const departmentId =
+      (req.user.roles ?? []).includes(UserRole.DEPT_ADMIN) ? req.user.departmentId : undefined;
     if (!departmentId) {
       throw new Error('Department ID required');
     }
-    return this.desksService.checkAndAutoCreateDesk(departmentId, body.divisionId);
+    return this.desksService.checkAndAutoCreateDesk(
+      departmentId,
+      body.divisionId,
+    );
   }
 
   // Update desk
@@ -106,7 +116,8 @@ export class DesksController {
   async updateDesk(
     @Param('id') id: string,
     @Request() req,
-    @Body() body: {
+    @Body()
+    body: {
       name?: string;
       description?: string;
       maxFilesPerDay?: number;
@@ -114,7 +125,7 @@ export class DesksController {
       isActive?: boolean;
     },
   ) {
-    return this.desksService.updateDesk(id, req.user.id, req.user.role, body);
+    return this.desksService.updateDesk(id, req.user.id, req.user.roles ?? [], body);
   }
 
   // Delete desk
@@ -122,7 +133,6 @@ export class DesksController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.DEPT_ADMIN)
   async deleteDesk(@Param('id') id: string, @Request() req) {
-    return this.desksService.deleteDesk(id, req.user.id, req.user.role);
+    return this.desksService.deleteDesk(id, req.user.id, req.user.roles ?? []);
   }
 }
-

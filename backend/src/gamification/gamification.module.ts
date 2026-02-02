@@ -10,4 +10,3 @@ import { RabbitMQModule } from '../rabbitmq/rabbitmq.module';
   exports: [GamificationService],
 })
 export class GamificationModule {}
-

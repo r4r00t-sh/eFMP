@@ -68,8 +68,9 @@ export class DocumentsController {
     @Param('id') versionId: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { stream, filename, mimeType, size } = await this.documentsService.getVersionDownloadStream(versionId);
-    
+    const { stream, filename, mimeType, size } =
+      await this.documentsService.getVersionDownloadStream(versionId);
+
     res.set({
       'Content-Type': mimeType,
       'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
@@ -81,10 +82,7 @@ export class DocumentsController {
 
   // Restore a previous version
   @Post('versions/:id/restore')
-  async restoreVersion(
-    @Param('id') versionId: string,
-    @Request() req,
-  ) {
+  async restoreVersion(@Param('id') versionId: string, @Request() req) {
     return this.documentsService.restoreVersion(versionId, req.user.id);
   }
 
@@ -103,10 +101,7 @@ export class DocumentsController {
 
   // Generate QR code for a file
   @Post('files/:id/qrcode')
-  async generateQRCode(
-    @Param('id') fileId: string,
-    @Request() req,
-  ) {
+  async generateQRCode(@Param('id') fileId: string, @Request() req) {
     return this.documentsService.generateFileQRCode(fileId, req.user.id);
   }
 
@@ -116,8 +111,9 @@ export class DocumentsController {
     @Param('id') qrCodeId: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { stream, mimeType } = await this.documentsService.getQRCodeImage(qrCodeId);
-    
+    const { stream, mimeType } =
+      await this.documentsService.getQRCodeImage(qrCodeId);
+
     res.set({
       'Content-Type': mimeType,
     });
@@ -129,7 +125,8 @@ export class DocumentsController {
   @Post('qr/scan')
   async scanQRCode(
     @Request() req,
-    @Body() body: {
+    @Body()
+    body: {
       qrCodeData: string;
       location?: string;
       department?: string;
@@ -162,7 +159,8 @@ export class DocumentsController {
   @UseInterceptors(FileInterceptor('templateFile'))
   async createTemplate(
     @Request() req,
-    @Body() body: {
+    @Body()
+    body: {
       name: string;
       code: string;
       description?: string;
@@ -180,24 +178,28 @@ export class DocumentsController {
       req.user.id,
       {
         ...body,
-        defaultDueDays: body.defaultDueDays ? parseInt(body.defaultDueDays) : undefined,
+        defaultDueDays: body.defaultDueDays
+          ? parseInt(body.defaultDueDays)
+          : undefined,
         isPublic: body.isPublic === 'true',
-        departmentId: req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined,
+        departmentId:
+          (req.user.roles ?? []).includes(UserRole.DEPT_ADMIN)
+            ? req.user.departmentId
+            : undefined,
       },
-      templateFile ? {
-        buffer: templateFile.buffer,
-        filename: templateFile.originalname,
-        mimetype: templateFile.mimetype,
-      } : undefined,
+      templateFile
+        ? {
+            buffer: templateFile.buffer,
+            filename: templateFile.originalname,
+            mimetype: templateFile.mimetype,
+          }
+        : undefined,
     );
   }
 
   // Get all templates
   @Get('templates')
-  async getTemplates(
-    @Request() req,
-    @Query('category') category?: string,
-  ) {
+  async getTemplates(@Request() req, @Query('category') category?: string) {
     return this.documentsService.getTemplates(req.user.departmentId, category);
   }
 
@@ -214,7 +216,8 @@ export class DocumentsController {
   async updateTemplate(
     @Param('id') id: string,
     @Request() req,
-    @Body() body: {
+    @Body()
+    body: {
       name?: string;
       description?: string;
       category?: string;
@@ -244,4 +247,3 @@ export class DocumentsController {
     return this.documentsService.getTemplateCategories();
   }
 }
-

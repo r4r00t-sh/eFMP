@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MinIOService } from '../minio/minio.service';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
@@ -22,10 +26,18 @@ export class FilesService {
     createdById: string;
     priority?: FilePriority;
     dueDate?: Date;
-    files?: { buffer: Buffer; filename: string; mimetype: string; size: number }[];
+    files?: {
+      buffer: Buffer;
+      filename: string;
+      mimetype: string;
+      size: number;
+    }[];
   }) {
     // Generate file number with department and division codes
-    const fileNumber = await this.generateFileNumber(data.departmentId, data.divisionId);
+    const fileNumber = await this.generateFileNumber(
+      data.departmentId,
+      data.divisionId,
+    );
 
     // Create file record first
     const file = await this.prisma.file.create({
@@ -66,7 +78,7 @@ export class FilesService {
             size: uploadFile.size,
             uploadedById: data.createdById,
           };
-        })
+        }),
       );
 
       await this.prisma.attachment.createMany({
@@ -88,12 +100,26 @@ export class FilesService {
     }
 
     // Create audit log
-    await this.createAuditLog(file.id, data.createdById, 'created', 'File created');
+    await this.createAuditLog(
+      file.id,
+      data.createdById,
+      'created',
+      'File created',
+    );
 
     return file;
   }
 
-  async addAttachment(fileId: string, userId: string, uploadFile: { buffer: Buffer; filename: string; mimetype: string; size: number }) {
+  async addAttachment(
+    fileId: string,
+    userId: string,
+    uploadFile: {
+      buffer: Buffer;
+      filename: string;
+      mimetype: string;
+      size: number;
+    },
+  ) {
     const file = await this.prisma.file.findUnique({ where: { id: fileId } });
     if (!file) {
       throw new NotFoundException('File not found');
@@ -117,7 +143,12 @@ export class FilesService {
       },
     });
 
-    await this.createAuditLog(fileId, userId, 'attachment_added', `Added attachment: ${uploadFile.filename}`);
+    await this.createAuditLog(
+      fileId,
+      userId,
+      'attachment_added',
+      `Added attachment: ${uploadFile.filename}`,
+    );
 
     return attachment;
   }
@@ -138,25 +169,38 @@ export class FilesService {
     // Delete from database
     await this.prisma.attachment.delete({ where: { id: attachmentId } });
 
-    await this.createAuditLog(attachment.fileId, userId, 'attachment_deleted', `Deleted attachment: ${attachment.filename}`);
+    await this.createAuditLog(
+      attachment.fileId,
+      userId,
+      'attachment_deleted',
+      `Deleted attachment: ${attachment.filename}`,
+    );
 
     return { message: 'Attachment deleted' };
   }
 
   async getAttachmentUrl(attachmentId: string): Promise<string> {
-    const attachment = await this.prisma.attachment.findUnique({ where: { id: attachmentId } });
+    const attachment = await this.prisma.attachment.findUnique({
+      where: { id: attachmentId },
+    });
     if (!attachment) {
       throw new NotFoundException('Attachment not found');
     }
     return this.minio.getFileUrl(attachment.s3Key, 3600);
   }
 
-  async getAttachmentStream(attachmentId: string): Promise<{ stream: NodeJS.ReadableStream; filename: string; mimeType: string }> {
-    const attachment = await this.prisma.attachment.findUnique({ where: { id: attachmentId } });
+  async getAttachmentStream(attachmentId: string): Promise<{
+    stream: NodeJS.ReadableStream;
+    filename: string;
+    mimeType: string;
+  }> {
+    const attachment = await this.prisma.attachment.findUnique({
+      where: { id: attachmentId },
+    });
     if (!attachment) {
       throw new NotFoundException('Attachment not found');
     }
-    
+
     const stream = await this.minio.getFileStream(attachment.s3Key);
     return {
       stream,
@@ -174,52 +218,39 @@ export class FilesService {
 
   async getAllFiles(
     userId: string,
-    userRole: string,
+    userRoles: string[],
     departmentId?: string | null,
     options?: {
       status?: string;
       search?: string;
       page?: number;
       limit?: number;
-    }
+    },
   ) {
     const where: any = {};
     const page = options?.page || 1;
     const limit = options?.limit || 50;
     const skip = (page - 1) * limit;
 
-    // Role-based filtering
-    // SUPER_ADMIN sees ALL files regardless of department - no filter applied
-    if (userRole === 'SUPER_ADMIN') {
+    // Role-based filtering (user may have multiple roles; highest scope wins)
+    if (userRoles.includes('SUPER_ADMIN')) {
       // No filtering for Super Admin - they see everything
-    } else if (userRole === 'DEPT_ADMIN') {
-      // Dept Admin sees all files in their department
+    } else if (userRoles.includes('DEPT_ADMIN')) {
       if (departmentId) {
         where.departmentId = departmentId;
       }
-      // If no departmentId, they see nothing (shouldn't happen)
-    } else if (userRole === 'APPROVAL_AUTHORITY') {
-      // Approval Authority sees files in their department
+    } else if (userRoles.includes('APPROVAL_AUTHORITY')) {
       if (departmentId) {
         where.departmentId = departmentId;
       }
-    } else if (userRole === 'INWARD_DESK' || userRole === 'DISPATCHER') {
-      // Inward Desk and Dispatcher see files in their department
+    } else if (userRoles.includes('INWARD_DESK') || userRoles.includes('DISPATCHER')) {
       if (departmentId) {
         where.departmentId = departmentId;
       }
-    } else if (userRole === 'SECTION_OFFICER') {
-      // Section Officers see files assigned to them OR created by them
-      where.OR = [
-        { assignedToId: userId },
-        { createdById: userId },
-      ];
+    } else if (userRoles.includes('SECTION_OFFICER')) {
+      where.OR = [{ assignedToId: userId }, { createdById: userId }];
     } else {
-      // Regular users only see files assigned to them or created by them
-      where.OR = [
-        { assignedToId: userId },
-        { createdById: userId },
-      ];
+      where.OR = [{ assignedToId: userId }, { createdById: userId }];
     }
 
     // Status filter
@@ -241,10 +272,7 @@ export class FilesService {
       if (where.OR) {
         const existingOr = where.OR;
         delete where.OR;
-        where.AND = [
-          { OR: existingOr },
-          searchCondition,
-        ];
+        where.AND = [{ OR: existingOr }, searchCondition];
       } else {
         where.OR = searchCondition.OR;
       }
@@ -320,7 +348,9 @@ export class FilesService {
 
     return {
       ...file,
-      fileUrl: file.s3Key ? `/files/attachments/legacy/download?key=${encodeURIComponent(file.s3Key)}` : null,
+      fileUrl: file.s3Key
+        ? `/files/attachments/legacy/download?key=${encodeURIComponent(file.s3Key)}`
+        : null,
       attachments: attachmentsWithUrls,
     };
   }
@@ -365,7 +395,12 @@ export class FilesService {
     });
 
     // Create audit log
-    await this.createAuditLog(fileId, fromUserId, 'forward', remarks || 'File forwarded');
+    await this.createAuditLog(
+      fileId,
+      fromUserId,
+      'forward',
+      remarks || 'File forwarded',
+    );
 
     // Send actionable toast to recipient
     if (toUserId) {
@@ -376,7 +411,11 @@ export class FilesService {
         message: `File ${file.fileNumber}: ${file.subject}`,
         fileId: file.id,
         actions: [
-          { label: 'Request Extra Time', action: 'request_extra_time', payload: { fileId } },
+          {
+            label: 'Request Extra Time',
+            action: 'request_extra_time',
+            payload: { fileId },
+          },
         ],
       });
     }
@@ -384,7 +423,12 @@ export class FilesService {
     return updatedFile;
   }
 
-  async performAction(fileId: string, userId: string, action: string, remarks?: string) {
+  async performAction(
+    fileId: string,
+    userId: string,
+    action: string,
+    remarks?: string,
+  ) {
     const file = await this.prisma.file.findUnique({
       where: { id: fileId },
     });
@@ -395,7 +439,7 @@ export class FilesService {
 
     let newStatus: FileStatus;
     let fileAction: FileAction;
-    
+
     switch (action) {
       case 'approve':
         newStatus = FileStatus.APPROVED;
@@ -428,7 +472,7 @@ export class FilesService {
 
     const updatedFile = await this.prisma.file.update({
       where: { id: fileId },
-      data: { 
+      data: {
         status: newStatus,
         isOnHold: action === 'hold',
         holdReason: action === 'hold' ? remarks : null,
@@ -447,15 +491,25 @@ export class FilesService {
     });
 
     // Create audit log
-    await this.createAuditLog(fileId, userId, action, remarks || `File ${action}`);
+    await this.createAuditLog(
+      fileId,
+      userId,
+      action,
+      remarks || `File ${action}`,
+    );
 
     return updatedFile;
   }
 
-  async requestExtraTime(fileId: string, userId: string, additionalDays: number, reason?: string) {
+  async requestExtraTime(
+    fileId: string,
+    userId: string,
+    additionalDays: number,
+    reason?: string,
+  ) {
     const file = await this.prisma.file.findUnique({
       where: { id: fileId },
-      include: { 
+      include: {
         createdBy: true,
         department: true,
         routingHistory: {
@@ -508,20 +562,33 @@ export class FilesService {
       fileId: file.id,
       extensionReqId: extensionRequest.id,
       actions: [
-        { label: 'Approve', action: 'approve_extension', payload: { extensionReqId: extensionRequest.id } },
-        { label: 'Deny', action: 'deny_extension', payload: { extensionReqId: extensionRequest.id } },
+        {
+          label: 'Approve',
+          action: 'approve_extension',
+          payload: { extensionReqId: extensionRequest.id },
+        },
+        {
+          label: 'Deny',
+          action: 'deny_extension',
+          payload: { extensionReqId: extensionRequest.id },
+        },
       ],
     });
 
     // Create audit log
-    await this.createAuditLog(fileId, userId, 'request_extra_time', `Requested ${additionalDays} additional days`);
+    await this.createAuditLog(
+      fileId,
+      userId,
+      'request_extra_time',
+      `Requested ${additionalDays} additional days`,
+    );
 
     // Notify department admin and super admin
     const admins = await this.prisma.user.findMany({
       where: {
         OR: [
-          { role: 'SUPER_ADMIN' },
-          { role: 'DEPT_ADMIN', departmentId: file.departmentId },
+          { roles: { has: 'SUPER_ADMIN' } },
+          { roles: { has: 'DEPT_ADMIN' }, departmentId: file.departmentId },
         ],
         isActive: true,
       },
@@ -541,7 +608,12 @@ export class FilesService {
     return { message: 'Extension request sent', extensionRequest };
   }
 
-  async approveExtension(extensionReqId: string, userId: string, approved: boolean, remarks?: string) {
+  async approveExtension(
+    extensionReqId: string,
+    userId: string,
+    approved: boolean,
+    remarks?: string,
+  ) {
     const request = await this.prisma.timeExtensionRequest.findUnique({
       where: { id: extensionReqId },
       include: {
@@ -558,8 +630,11 @@ export class FilesService {
     if (request.approverId !== userId) {
       // Check if user is admin
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
-      if (!user || !['SUPER_ADMIN', 'DEPT_ADMIN'].includes(user.role)) {
-        throw new ForbiddenException('You are not authorized to approve this request');
+      const userRoles = (user?.roles ?? []) as string[];
+      if (!user || !['SUPER_ADMIN', 'DEPT_ADMIN'].some((r) => userRoles.includes(r))) {
+        throw new ForbiddenException(
+          'You are not authorized to approve this request',
+        );
       }
     }
 
@@ -584,11 +659,11 @@ export class FilesService {
       // Extend the file's time limits
       const additionalSeconds = request.additionalTime;
       const file = request.file;
-      
-      const newDueDate = file.dueDate 
+
+      const newDueDate = file.dueDate
         ? new Date(file.dueDate.getTime() + additionalSeconds * 1000)
         : new Date(Date.now() + additionalSeconds * 1000);
-      
+
       const newDeskDueDate = file.deskDueDate
         ? new Date(file.deskDueDate.getTime() + additionalSeconds * 1000)
         : null;
@@ -621,8 +696,8 @@ export class FilesService {
     const admins = await this.prisma.user.findMany({
       where: {
         OR: [
-          { role: 'SUPER_ADMIN' },
-          { role: 'DEPT_ADMIN', departmentId: request.file.departmentId },
+          { roles: { has: 'SUPER_ADMIN' } },
+          { roles: { has: 'DEPT_ADMIN' }, departmentId: request.file.departmentId },
         ],
         isActive: true,
         id: { not: userId }, // Don't notify the approver
@@ -673,8 +748,13 @@ export class FilesService {
     });
   }
 
-  async recallFile(fileId: string, userId: string, userRole: string, remarks?: string) {
-    if (userRole !== 'SUPER_ADMIN') {
+  async recallFile(
+    fileId: string,
+    userId: string,
+    userRoles: string[],
+    remarks?: string,
+  ) {
+    if (!userRoles.includes('SUPER_ADMIN')) {
       throw new ForbiddenException('Only Super Admin can recall files');
     }
 
@@ -706,12 +786,20 @@ export class FilesService {
     });
 
     // Create audit log
-    await this.createAuditLog(fileId, userId, 'recall', remarks || 'File recalled');
+    await this.createAuditLog(
+      fileId,
+      userId,
+      'recall',
+      remarks || 'File recalled',
+    );
 
     return updatedFile;
   }
 
-  private async generateFileNumber(departmentId: string, divisionId?: string): Promise<string> {
+  private async generateFileNumber(
+    departmentId: string,
+    divisionId?: string,
+  ): Promise<string> {
     const department = await this.prisma.department.findUnique({
       where: { id: departmentId },
     });
@@ -732,7 +820,7 @@ export class FilesService {
     }
 
     const year = new Date().getFullYear();
-    
+
     // Count files for this department in current year
     const count = await this.prisma.file.count({
       where: {

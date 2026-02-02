@@ -26,7 +26,8 @@ export class AnalyticsController {
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
   ) {
-    const departmentId = req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined;
+    const departmentId =
+      (req.user.roles ?? []).includes(UserRole.DEPT_ADMIN) ? req.user.departmentId : undefined;
     return this.analyticsService.getDashboardAnalytics(
       departmentId,
       dateFrom ? new Date(dateFrom) : undefined,
@@ -46,7 +47,8 @@ export class AnalyticsController {
     @Request() req,
     @Query('limit') limit?: string,
   ) {
-    const departmentId = req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined;
+    const departmentId =
+      (req.user.roles ?? []).includes(UserRole.DEPT_ADMIN) ? req.user.departmentId : undefined;
     return this.analyticsService.getUserPerformanceAnalytics(
       departmentId,
       limit ? parseInt(limit) : 50,
@@ -56,14 +58,16 @@ export class AnalyticsController {
   @Get('processing-time')
   @Roles(UserRole.SUPER_ADMIN, UserRole.DEPT_ADMIN)
   async getProcessingTimeAnalytics(@Request() req) {
-    const departmentId = req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined;
+    const departmentId =
+      (req.user.roles ?? []).includes(UserRole.DEPT_ADMIN) ? req.user.departmentId : undefined;
     return this.analyticsService.getProcessingTimeAnalytics(departmentId);
   }
 
   @Get('bottlenecks')
   @Roles(UserRole.SUPER_ADMIN, UserRole.DEPT_ADMIN)
   async getBottleneckAnalysis(@Request() req) {
-    const departmentId = req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined;
+    const departmentId =
+      (req.user.roles ?? []).includes(UserRole.DEPT_ADMIN) ? req.user.departmentId : undefined;
     return this.analyticsService.getBottleneckAnalysis(departmentId);
   }
 
@@ -71,11 +75,13 @@ export class AnalyticsController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.DEPT_ADMIN)
   async generateReport(
     @Request() req,
-    @Query('type') type: 'summary' | 'detailed' | 'user_performance' | 'department',
+    @Query('type')
+    type: 'summary' | 'detailed' | 'user_performance' | 'department',
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
   ) {
-    const departmentId = req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined;
+    const departmentId =
+      (req.user.roles ?? []).includes(UserRole.DEPT_ADMIN) ? req.user.departmentId : undefined;
     return this.analyticsService.generateReport(
       type || 'summary',
       departmentId,
@@ -90,11 +96,13 @@ export class AnalyticsController {
   async exportReportCSV(
     @Request() req,
     @Res() res: Response,
-    @Query('type') type: 'summary' | 'detailed' | 'user_performance' | 'department',
+    @Query('type')
+    type: 'summary' | 'detailed' | 'user_performance' | 'department',
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
   ) {
-    const departmentId = req.user.role === UserRole.DEPT_ADMIN ? req.user.departmentId : undefined;
+    const departmentId =
+      (req.user.roles ?? []).includes(UserRole.DEPT_ADMIN) ? req.user.departmentId : undefined;
     const data: any = await this.analyticsService.generateReport(
       type || 'detailed',
       departmentId,
@@ -121,16 +129,19 @@ export class AnalyticsController {
 
   private convertToCSV(data: any[]): string {
     if (!data || data.length === 0) return '';
-    
+
     const headers = Object.keys(data[0]);
-    const rows = data.map(row =>
-      headers.map(header => {
-        const value = row[header];
-        if (value === null || value === undefined) return '';
-        if (typeof value === 'object') return JSON.stringify(value);
-        if (typeof value === 'string' && value.includes(',')) return `"${value}"`;
-        return String(value);
-      }).join(',')
+    const rows = data.map((row) =>
+      headers
+        .map((header) => {
+          const value = row[header];
+          if (value === null || value === undefined) return '';
+          if (typeof value === 'object') return JSON.stringify(value);
+          if (typeof value === 'string' && value.includes(','))
+            return `"${value}"`;
+          return String(value);
+        })
+        .join(','),
     );
 
     return [headers.join(','), ...rows].join('\n');
@@ -139,7 +150,7 @@ export class AnalyticsController {
   private convertSummaryToCSV(data: any): string {
     const lines: string[] = [];
     lines.push('Metric,Value');
-    
+
     if (data.summary) {
       Object.entries(data.summary).forEach(([key, value]) => {
         lines.push(`${key},${value}`);
@@ -158,4 +169,3 @@ export class AnalyticsController {
     return lines.join('\n');
   }
 }
-

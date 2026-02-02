@@ -36,7 +36,8 @@ export class BackFilesController {
   @UseInterceptors(FileInterceptor('file'))
   async createBackFile(
     @Request() req,
-    @Body() body: {
+    @Body()
+    body: {
       fileNumber: string;
       subject: string;
       description?: string;
@@ -54,17 +55,19 @@ export class BackFilesController {
       }
     }
 
-    return this.backFilesService.createBackFile(req.user.id, req.user.role, {
+    return this.backFilesService.createBackFile(req.user.id, req.user.roles ?? [], {
       fileNumber: body.fileNumber,
       subject: body.subject,
       description: body.description,
       departmentId: body.departmentId,
-      file: file ? {
-        buffer: file.buffer,
-        filename: file.originalname,
-        mimetype: file.mimetype,
-        size: file.size,
-      } : undefined,
+      file: file
+        ? {
+            buffer: file.buffer,
+            filename: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+          }
+        : undefined,
       tags,
     });
   }
@@ -78,9 +81,10 @@ export class BackFilesController {
     @Query('tagName') tagName?: string,
     @Query('search') search?: string,
   ) {
-    return this.backFilesService.getBackFiles(req.user.id, req.user.role, {
+    return this.backFilesService.getBackFiles(req.user.id, req.user.roles ?? [], {
       departmentId,
-      isHidden: isHidden === 'true' ? true : isHidden === 'false' ? false : undefined,
+      isHidden:
+        isHidden === 'true' ? true : isHidden === 'false' ? false : undefined,
       tagName,
       search,
     });
@@ -89,13 +93,21 @@ export class BackFilesController {
   // Get back file by ID
   @Get(':id')
   async getBackFileById(@Param('id') id: string, @Request() req) {
-    return this.backFilesService.getBackFileById(id, req.user.id, req.user.role);
+    return this.backFilesService.getBackFileById(
+      id,
+      req.user.id,
+      req.user.roles ?? [],
+    );
   }
 
   // Get back files for a file
   @Get('file/:fileId')
   async getBackFilesForFile(@Param('fileId') fileId: string, @Request() req) {
-    return this.backFilesService.getBackFilesForFile(fileId, req.user.id, req.user.role);
+    return this.backFilesService.getBackFilesForFile(
+      fileId,
+      req.user.id,
+      req.user.roles ?? [],
+    );
   }
 
   // Link back file to file
@@ -114,9 +126,7 @@ export class BackFilesController {
 
   // Unlink back file from file
   @Delete('link')
-  async unlinkBackFile(
-    @Body() body: { fileId: string; backFileId: string },
-  ) {
+  async unlinkBackFile(@Body() body: { fileId: string; backFileId: string }) {
     return this.backFilesService.unlinkBackFile(body.fileId, body.backFileId);
   }
 
@@ -129,7 +139,12 @@ export class BackFilesController {
     @Request() req,
     @Body() body: { isHidden?: boolean; accessRoles?: string[] },
   ) {
-    return this.backFilesService.updateBackFileAccess(id, req.user.id, req.user.role, body);
+    return this.backFilesService.updateBackFileAccess(
+      id,
+      req.user.id,
+      req.user.roles ?? [],
+      body,
+    );
   }
 
   // Add tag
@@ -138,7 +153,11 @@ export class BackFilesController {
     @Param('id') backFileId: string,
     @Body() body: { tagName: string; tagValue?: string },
   ) {
-    return this.backFilesService.addTag(backFileId, body.tagName, body.tagValue);
+    return this.backFilesService.addTag(
+      backFileId,
+      body.tagName,
+      body.tagValue,
+    );
   }
 
   // Remove tag
@@ -154,11 +173,12 @@ export class BackFilesController {
     @Request() req,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { stream, filename, mimeType } = await this.backFilesService.downloadBackFile(
-      id,
-      req.user.id,
-      req.user.role,
-    );
+    const { stream, filename, mimeType } =
+      await this.backFilesService.downloadBackFile(
+        id,
+        req.user.id,
+        req.user.roles ?? [],
+      );
 
     res.set({
       'Content-Type': mimeType,
@@ -168,4 +188,3 @@ export class BackFilesController {
     return new StreamableFile(stream as unknown as Readable);
   }
 }
-

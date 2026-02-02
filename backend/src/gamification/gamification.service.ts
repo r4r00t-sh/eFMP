@@ -18,8 +18,11 @@ export class GamificationService {
   ) {}
 
   async initializeUserPoints(userId: string): Promise<void> {
-    const basePoints = await this.getSetting('base_points', this.DEFAULT_BASE_POINTS);
-    
+    const basePoints = await this.getSetting(
+      'base_points',
+      this.DEFAULT_BASE_POINTS,
+    );
+
     await this.prisma.userPoints.upsert({
       where: { userId },
       create: {
@@ -31,9 +34,16 @@ export class GamificationService {
     });
   }
 
-  async deductForRedList(userId: string, fileId: string, fileNumber: string): Promise<void> {
-    const penalty = await this.getSetting('redlist_penalty', this.DEFAULT_REDLIST_PENALTY);
-    
+  async deductForRedList(
+    userId: string,
+    fileId: string,
+    fileNumber: string,
+  ): Promise<void> {
+    const penalty = await this.getSetting(
+      'redlist_penalty',
+      this.DEFAULT_REDLIST_PENALTY,
+    );
+
     // Update user points
     const userPoints = await this.prisma.userPoints.update({
       where: { userId },
@@ -56,15 +66,29 @@ export class GamificationService {
     });
 
     // Check thresholds for user marking
-    const warningThreshold = await this.getSetting('redlist_warning_threshold', this.DEFAULT_REDLIST_WARNING_THRESHOLD);
-    const severeThreshold = await this.getSetting('redlist_severe_threshold', this.DEFAULT_REDLIST_SEVERE_THRESHOLD);
+    const warningThreshold = await this.getSetting(
+      'redlist_warning_threshold',
+      this.DEFAULT_REDLIST_WARNING_THRESHOLD,
+    );
+    const severeThreshold = await this.getSetting(
+      'redlist_severe_threshold',
+      this.DEFAULT_REDLIST_SEVERE_THRESHOLD,
+    );
 
     if (userPoints.redListCount >= severeThreshold) {
       // Notify admins about severe case
-      await this.notifyAdminsAboutUser(userId, 'severe_redlist', userPoints.redListCount);
+      await this.notifyAdminsAboutUser(
+        userId,
+        'severe_redlist',
+        userPoints.redListCount,
+      );
     } else if (userPoints.redListCount >= warningThreshold) {
       // Notify admins about warning
-      await this.notifyAdminsAboutUser(userId, 'warning_redlist', userPoints.redListCount);
+      await this.notifyAdminsAboutUser(
+        userId,
+        'warning_redlist',
+        userPoints.redListCount,
+      );
     }
   }
 
@@ -72,14 +96,19 @@ export class GamificationService {
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
   async processMonthlyBonuses(): Promise<void> {
     console.log('Processing monthly bonuses...');
-    
-    const monthlyBonus = await this.getSetting('monthly_bonus', this.DEFAULT_MONTHLY_BONUS);
+
+    const monthlyBonus = await this.getSetting(
+      'monthly_bonus',
+      this.DEFAULT_MONTHLY_BONUS,
+    );
     const now = new Date();
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
     // Find users who had zero redlist files last month
     const allUserPoints = await this.prisma.userPoints.findMany({
-      include: { user: { select: { id: true, name: true, departmentId: true } } },
+      include: {
+        user: { select: { id: true, name: true, departmentId: true } },
+      },
     });
 
     for (const userPoints of allUserPoints) {
@@ -191,7 +220,11 @@ export class GamificationService {
     return setting ? parseInt(setting.value) : defaultValue;
   }
 
-  private async notifyAdminsAboutUser(userId: string, type: 'warning_redlist' | 'severe_redlist', count: number) {
+  private async notifyAdminsAboutUser(
+    userId: string,
+    type: 'warning_redlist' | 'severe_redlist',
+    count: number,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { name: true, departmentId: true },
@@ -202,24 +235,27 @@ export class GamificationService {
     const admins = await this.prisma.user.findMany({
       where: {
         OR: [
-          { role: 'SUPER_ADMIN' },
-          { role: 'DEPT_ADMIN', departmentId: user.departmentId },
+          { roles: { has: 'SUPER_ADMIN' } },
+          { roles: { has: 'DEPT_ADMIN' }, departmentId: user.departmentId },
         ],
         isActive: true,
       },
       select: { id: true },
     });
 
-    const title = type === 'severe_redlist'
-      ? 'User Performance Alert - Severe'
-      : 'User Performance Alert';
-    const message = type === 'severe_redlist'
-      ? `${user.name} has ${count} red listed files this month - immediate attention required`
-      : `${user.name} has ${count} red listed files this month`;
+    const title =
+      type === 'severe_redlist'
+        ? 'User Performance Alert - Severe'
+        : 'User Performance Alert';
+    const message =
+      type === 'severe_redlist'
+        ? `${user.name} has ${count} red listed files this month - immediate attention required`
+        : `${user.name} has ${count} red listed files this month`;
 
-    const toastType = type === 'severe_redlist' 
-      ? 'admin_user_severe_redlist' as const
-      : 'admin_user_warning_redlist' as const;
+    const toastType =
+      type === 'severe_redlist'
+        ? ('admin_user_severe_redlist' as const)
+        : ('admin_user_warning_redlist' as const);
 
     for (const admin of admins) {
       await this.rabbitmq.publishToast({
@@ -240,4 +276,3 @@ export class GamificationService {
     }
   }
 }
-

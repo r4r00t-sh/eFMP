@@ -11,7 +11,10 @@ export class HealthController {
 
   @Get()
   async check() {
-    const checks: Record<string, { status: string; latency?: number; error?: string }> = {};
+    const checks: Record<
+      string,
+      { status: string; latency?: number; error?: string }
+    > = {};
 
     // Check database
     try {
@@ -31,7 +34,9 @@ export class HealthController {
       checks.redis = { status: 'unhealthy', error: error.message };
     }
 
-    const allHealthy = Object.values(checks).every(c => c.status === 'healthy');
+    const allHealthy = Object.values(checks).every(
+      (c) => c.status === 'healthy',
+    );
 
     return {
       status: allHealthy ? 'healthy' : 'degraded',
@@ -56,4 +61,3 @@ export class HealthController {
     }
   }
 }
-

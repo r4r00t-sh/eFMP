@@ -44,7 +44,7 @@ export class AuthService {
     const payload = {
       username: user.username,
       sub: user.id,
-      role: user.role,
+      roles: user.roles ?? (user.role ? [user.role] : []),
       departmentId: user.departmentId,
     };
 
@@ -68,6 +68,12 @@ export class AuthService {
       },
     });
 
+    const userWithAvatar = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { avatarKey: true },
+    });
+
+    const roles = user.roles ?? (user.role ? [user.role] : []);
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -75,9 +81,10 @@ export class AuthService {
         username: user.username,
         email: user.email,
         name: user.name,
-        role: user.role,
+        roles,
         departmentId: user.departmentId,
         divisionId: user.divisionId,
+        avatarKey: userWithAvatar?.avatarKey ?? null,
       },
     };
   }
@@ -108,11 +115,12 @@ export class AuthService {
     password: string;
     name: string;
     email?: string;
-    role?: string;
+    roles?: string[];
     departmentId?: string;
     divisionId?: string;
   }) {
     const hashedPassword = await bcrypt.hash(data.password, 10);
+    const roles = (data.roles?.length ? data.roles : ['USER']) as any[];
 
     const user = await this.prisma.user.create({
       data: {
@@ -120,7 +128,7 @@ export class AuthService {
         email: data.email,
         passwordHash: hashedPassword,
         name: data.name,
-        role: data.role as any || 'USER',
+        roles,
         departmentId: data.departmentId,
         divisionId: data.divisionId,
       },
@@ -136,4 +144,3 @@ export class AuthService {
     return result;
   }
 }
-

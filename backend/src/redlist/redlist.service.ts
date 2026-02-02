@@ -16,7 +16,7 @@ export class RedListService {
   async updateRedList() {
     console.log('Running red list check...');
     const now = new Date();
-    
+
     const overdueFiles = await this.prisma.file.findMany({
       where: {
         OR: [
@@ -42,7 +42,7 @@ export class RedListService {
     for (const file of overdueFiles) {
       await this.prisma.file.update({
         where: { id: file.id },
-        data: { 
+        data: {
           isRedListed: true,
           redListedAt: now,
           timerPercentage: 0,
@@ -72,8 +72,8 @@ export class RedListService {
       const admins = await this.prisma.user.findMany({
         where: {
           OR: [
-            { role: 'SUPER_ADMIN' },
-            { role: 'DEPT_ADMIN', departmentId: file.departmentId },
+            { roles: { has: 'SUPER_ADMIN' } },
+            { roles: { has: 'DEPT_ADMIN' }, departmentId: file.departmentId },
           ],
           isActive: true,
         },
@@ -129,4 +129,3 @@ export class RedListService {
     });
   }
 }
-

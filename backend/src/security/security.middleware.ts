@@ -36,4 +36,3 @@ export class SecurityMiddleware implements NestMiddleware {
     });
   }
 }
-

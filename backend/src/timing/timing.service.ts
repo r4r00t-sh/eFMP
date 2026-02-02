@@ -19,13 +19,13 @@ export class TimingService {
     const now = new Date();
     const dueDate = new Date(file.dueDate);
     const diffMs = dueDate.getTime() - now.getTime();
-    
+
     return Math.max(0, Math.floor(diffMs / 1000)); // Return seconds
   }
 
   async updateTimeRemaining(fileId: string): Promise<void> {
     const timeRemaining = await this.calculateTimeRemaining(fileId);
-    
+
     await this.prisma.file.update({
       where: { id: fileId },
       data: { timeRemaining },
@@ -66,7 +66,7 @@ export class TimingService {
   }
 
   async addBusinessDays(startDate: Date, days: number): Promise<Date> {
-    let currentDate = new Date(startDate);
+    const currentDate = new Date(startDate);
     let addedDays = 0;
 
     while (addedDays < days) {
@@ -79,4 +79,3 @@ export class TimingService {
     return currentDate;
   }
 }
-

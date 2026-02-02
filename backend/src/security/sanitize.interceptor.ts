@@ -19,7 +19,9 @@ export class SanitizeInterceptor implements NestInterceptor {
     if (request.query) {
       Object.keys(request.query).forEach((key) => {
         if (typeof request.query[key] === 'string') {
-          request.query[key] = this.securityService.sanitizeInput(request.query[key]);
+          request.query[key] = this.securityService.sanitizeInput(
+            request.query[key],
+          );
         }
       });
     }
@@ -76,4 +78,3 @@ export class SanitizeInterceptor implements NestInterceptor {
     return data;
   }
 }
-

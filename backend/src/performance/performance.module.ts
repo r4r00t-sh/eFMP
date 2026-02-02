@@ -11,4 +11,3 @@ import { NotificationsModule } from '../notifications/notifications.module';
   exports: [PerformanceService],
 })
 export class PerformanceModule {}
-

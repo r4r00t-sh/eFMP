@@ -70,12 +70,12 @@ export class PerformanceController {
 
   // Calculate working hours from activity
   @Post('working-hours/calculate')
-  async calculateWorkingHours(
-    @Request() req,
-    @Body() body: { date?: string },
-  ) {
+  async calculateWorkingHours(@Request() req, @Body() body: { date?: string }) {
     const date = body.date ? new Date(body.date) : new Date();
-    return this.performanceService.calculateWorkingHoursFromActivity(req.user.id, date);
+    return this.performanceService.calculateWorkingHoursFromActivity(
+      req.user.id,
+      date,
+    );
   }
 
   // Get performance config
@@ -93,7 +93,11 @@ export class PerformanceController {
   async setConfig(
     @Body() body: { key: string; value: any; description?: string },
   ) {
-    return this.performanceService.setConfig(body.key, body.value, body.description);
+    return this.performanceService.setConfig(
+      body.key,
+      body.value,
+      body.description,
+    );
   }
 
   // Resolve red flag
@@ -105,7 +109,10 @@ export class PerformanceController {
     @Request() req,
     @Body() body: { resolutionNote?: string },
   ) {
-    return this.performanceService.resolveRedFlag(flagId, req.user.id, body.resolutionNote);
+    return this.performanceService.resolveRedFlag(
+      flagId,
+      req.user.id,
+      body.resolutionNote,
+    );
   }
 }
-

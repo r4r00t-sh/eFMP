@@ -22,14 +22,15 @@ export class FilesPublicController {
     @Param('attachmentId') attachmentId: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
-    const { stream, filename, mimeType } = await this.filesService.getAttachmentStream(attachmentId);
-    
+    const { stream, filename, mimeType } =
+      await this.filesService.getAttachmentStream(attachmentId);
+
     res.set({
       'Content-Type': mimeType,
       'Content-Disposition': `inline; filename="${encodeURIComponent(filename)}"`,
       'Cache-Control': 'public, max-age=3600',
     });
-    
+
     return new StreamableFile(Readable.from(stream as any));
   }
 
@@ -40,17 +41,18 @@ export class FilesPublicController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const stream = await this.filesService.getLegacyFileStream(s3Key);
-    
+
     // Extract filename from s3Key (format: timestamp-filename)
-    const filename = s3Key.includes('-') ? s3Key.substring(s3Key.indexOf('-') + 1) : s3Key;
-    
+    const filename = s3Key.includes('-')
+      ? s3Key.substring(s3Key.indexOf('-') + 1)
+      : s3Key;
+
     res.set({
       'Content-Type': 'application/octet-stream',
       'Content-Disposition': `inline; filename="${encodeURIComponent(filename)}"`,
       'Cache-Control': 'public, max-age=3600',
     });
-    
+
     return new StreamableFile(Readable.from(stream as any));
   }
 }
-

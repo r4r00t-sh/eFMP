@@ -6,7 +6,11 @@ export class AnalyticsService {
   constructor(private prisma: PrismaService) {}
 
   // Get comprehensive dashboard analytics
-  async getDashboardAnalytics(departmentId?: string, dateFrom?: Date, dateTo?: Date) {
+  async getDashboardAnalytics(
+    departmentId?: string,
+    dateFrom?: Date,
+    dateTo?: Date,
+  ) {
     const dateFilter: any = {};
     if (dateFrom) dateFilter.gte = dateFrom;
     if (dateTo) dateFilter.lte = dateTo;
@@ -29,7 +33,9 @@ export class AnalyticsService {
     ] = await Promise.all([
       this.prisma.file.count({ where: whereBase }),
       this.prisma.file.count({ where: { ...whereBase, status: 'PENDING' } }),
-      this.prisma.file.count({ where: { ...whereBase, status: 'IN_PROGRESS' } }),
+      this.prisma.file.count({
+        where: { ...whereBase, status: 'IN_PROGRESS' },
+      }),
       this.prisma.file.count({ where: { ...whereBase, status: 'APPROVED' } }),
       this.prisma.file.count({ where: { ...whereBase, status: 'REJECTED' } }),
       this.prisma.file.count({ where: { ...whereBase, isRedListed: true } }),
@@ -46,7 +52,11 @@ export class AnalyticsService {
 
     // Processing time analytics
     const avgProcessingTime = await this.prisma.file.aggregate({
-      where: { ...whereBase, status: 'APPROVED', totalProcessingTime: { not: null } },
+      where: {
+        ...whereBase,
+        status: 'APPROVED',
+        totalProcessingTime: { not: null },
+      },
       _avg: { totalProcessingTime: true },
     });
 
@@ -115,21 +125,25 @@ export class AnalyticsService {
         totalUsers,
         activeUsersToday,
         avgProcessingTimeHours: avgProcessingTime._avg.totalProcessingTime
-          ? Math.round((avgProcessingTime._avg.totalProcessingTime / 3600) * 10) / 10
+          ? Math.round(
+              (avgProcessingTime._avg.totalProcessingTime / 3600) * 10,
+            ) / 10
           : null,
-        completionRate: totalFiles > 0 ? Math.round((completedFiles / totalFiles) * 100) : 0,
-        redListRate: totalFiles > 0 ? Math.round((redListedFiles / totalFiles) * 100) : 0,
+        completionRate:
+          totalFiles > 0 ? Math.round((completedFiles / totalFiles) * 100) : 0,
+        redListRate:
+          totalFiles > 0 ? Math.round((redListedFiles / totalFiles) * 100) : 0,
       },
-      filesByPriority: filesByPriority.map(p => ({
+      filesByPriority: filesByPriority.map((p) => ({
         priority: p.priority,
         count: p._count.id,
       })),
-      filesByPriorityCategory: filesByPriorityCategory.map(p => ({
+      filesByPriorityCategory: filesByPriorityCategory.map((p) => ({
         category: p.priorityCategory,
         count: p._count.id,
       })),
       filesPerDay,
-      extensionStats: extensionStats.map(e => ({
+      extensionStats: extensionStats.map((e) => ({
         status: e.status,
         count: e._count.id,
       })),
@@ -158,12 +172,24 @@ export class AnalyticsService {
           redListCount,
           avgProcessingTime,
         ] = await Promise.all([
-          this.prisma.file.count({ where: { departmentId: dept.id, status: 'PENDING' } }),
-          this.prisma.file.count({ where: { departmentId: dept.id, status: 'IN_PROGRESS' } }),
-          this.prisma.file.count({ where: { departmentId: dept.id, status: 'APPROVED' } }),
-          this.prisma.file.count({ where: { departmentId: dept.id, isRedListed: true } }),
+          this.prisma.file.count({
+            where: { departmentId: dept.id, status: 'PENDING' },
+          }),
+          this.prisma.file.count({
+            where: { departmentId: dept.id, status: 'IN_PROGRESS' },
+          }),
+          this.prisma.file.count({
+            where: { departmentId: dept.id, status: 'APPROVED' },
+          }),
+          this.prisma.file.count({
+            where: { departmentId: dept.id, isRedListed: true },
+          }),
           this.prisma.file.aggregate({
-            where: { departmentId: dept.id, status: 'APPROVED', totalProcessingTime: { not: null } },
+            where: {
+              departmentId: dept.id,
+              status: 'APPROVED',
+              totalProcessingTime: { not: null },
+            },
             _avg: { totalProcessingTime: true },
           }),
         ]);
@@ -185,14 +211,17 @@ export class AnalyticsService {
           completedFiles: completedCount,
           redListedFiles: redListCount,
           avgProcessingTimeHours: avgProcessingTime._avg.totalProcessingTime
-            ? Math.round((avgProcessingTime._avg.totalProcessingTime / 3600) * 10) / 10
+            ? Math.round(
+                (avgProcessingTime._avg.totalProcessingTime / 3600) * 10,
+              ) / 10
             : null,
           avgUserPoints: Math.round(userPointsAvg._avg.currentPoints || 0),
-          efficiency: dept._count.files > 0
-            ? Math.round((completedCount / dept._count.files) * 100)
-            : 0,
+          efficiency:
+            dept._count.files > 0
+              ? Math.round((completedCount / dept._count.files) * 100)
+              : 0,
         };
-      })
+      }),
     );
 
     return deptAnalytics;
@@ -246,7 +275,7 @@ export class AnalyticsService {
           id: user.id,
           name: user.name,
           username: user.username,
-          role: user.role,
+          roles: user.roles,
           department: user.department?.name,
           departmentCode: user.department?.code,
           division: user.division?.name,
@@ -259,25 +288,31 @@ export class AnalyticsService {
           redListedFiles,
           extensionRequests,
           avgProcessingTimeHours: avgProcessingTime._avg.timeSpentAtDesk
-            ? Math.round((avgProcessingTime._avg.timeSpentAtDesk / 3600) * 10) / 10
+            ? Math.round((avgProcessingTime._avg.timeSpentAtDesk / 3600) * 10) /
+              10
             : null,
           performanceScore: this.calculatePerformanceScore(
             completedFiles,
             redListedFiles,
             user.points?.currentPoints || 1000,
-            extensionRequests
+            extensionRequests,
           ),
         };
-      })
+      }),
     );
 
     // Sort by performance score
-    return userAnalytics.sort((a, b) => b.performanceScore - a.performanceScore);
+    return userAnalytics.sort(
+      (a, b) => b.performanceScore - a.performanceScore,
+    );
   }
 
   // Get file processing time breakdown
   async getProcessingTimeAnalytics(departmentId?: string) {
-    const where: any = { status: 'APPROVED', totalProcessingTime: { not: null } };
+    const where: any = {
+      status: 'APPROVED',
+      totalProcessingTime: { not: null },
+    };
     if (departmentId) where.departmentId = departmentId;
 
     // By priority category
@@ -297,22 +332,22 @@ export class AnalyticsService {
     });
 
     // Get department names
-    const deptIds = byDepartment.map(d => d.departmentId);
+    const deptIds = byDepartment.map((d) => d.departmentId);
     const departments = await this.prisma.department.findMany({
       where: { id: { in: deptIds } },
       select: { id: true, name: true, code: true },
     });
-    const deptMap = new Map(departments.map(d => [d.id, d]));
+    const deptMap = new Map(departments.map((d) => [d.id, d]));
 
     return {
-      byPriorityCategory: byCategory.map(c => ({
+      byPriorityCategory: byCategory.map((c) => ({
         category: c.priorityCategory,
         avgTimeHours: c._avg.totalProcessingTime
           ? Math.round((c._avg.totalProcessingTime / 3600) * 10) / 10
           : null,
         count: c._count.id,
       })),
-      byDepartment: byDepartment.map(d => ({
+      byDepartment: byDepartment.map((d) => ({
         departmentId: d.departmentId,
         departmentName: deptMap.get(d.departmentId)?.name,
         departmentCode: deptMap.get(d.departmentId)?.code,
@@ -339,12 +374,14 @@ export class AnalyticsService {
     });
 
     // Get user details
-    const userIds = filesPerUser.map(f => f.assignedToId).filter(Boolean) as string[];
+    const userIds = filesPerUser
+      .map((f) => f.assignedToId)
+      .filter(Boolean) as string[];
     const users = await this.prisma.user.findMany({
       where: { id: { in: userIds } },
       select: { id: true, name: true, department: { select: { name: true } } },
     });
-    const userMap = new Map(users.map(u => [u.id, u]));
+    const userMap = new Map(users.map((u) => [u.id, u]));
 
     // Files stuck at each division
     const filesPerDivision = await this.prisma.file.groupBy({
@@ -356,12 +393,14 @@ export class AnalyticsService {
     });
 
     // Get division details
-    const divisionIds = filesPerDivision.map(f => f.currentDivisionId).filter(Boolean) as string[];
+    const divisionIds = filesPerDivision
+      .map((f) => f.currentDivisionId)
+      .filter(Boolean) as string[];
     const divisions = await this.prisma.division.findMany({
       where: { id: { in: divisionIds } },
       select: { id: true, name: true, department: { select: { name: true } } },
     });
-    const divisionMap = new Map(divisions.map(d => [d.id, d]));
+    const divisionMap = new Map(divisions.map((d) => [d.id, d]));
 
     // Overdue files analysis
     const overdueFiles = await this.prisma.file.findMany({
@@ -382,19 +421,19 @@ export class AnalyticsService {
     });
 
     return {
-      userBottlenecks: filesPerUser.map(f => ({
+      userBottlenecks: filesPerUser.map((f) => ({
         userId: f.assignedToId,
         userName: userMap.get(f.assignedToId!)?.name,
         department: userMap.get(f.assignedToId!)?.department?.name,
         pendingFiles: f._count.id,
       })),
-      divisionBottlenecks: filesPerDivision.map(f => ({
+      divisionBottlenecks: filesPerDivision.map((f) => ({
         divisionId: f.currentDivisionId,
         divisionName: divisionMap.get(f.currentDivisionId!)?.name,
         department: divisionMap.get(f.currentDivisionId!)?.department?.name,
         pendingFiles: f._count.id,
       })),
-      overdueFiles: overdueFiles.map(f => ({
+      overdueFiles: overdueFiles.map((f) => ({
         id: f.id,
         fileNumber: f.fileNumber,
         subject: f.subject,
@@ -403,7 +442,9 @@ export class AnalyticsService {
         department: f.department.name,
         dueDate: f.dueDate,
         daysOverdue: f.dueDate
-          ? Math.floor((Date.now() - f.dueDate.getTime()) / (1000 * 60 * 60 * 24))
+          ? Math.floor(
+              (Date.now() - f.dueDate.getTime()) / (1000 * 60 * 60 * 24),
+            )
           : null,
       })),
     };
@@ -423,12 +464,14 @@ export class AnalyticsService {
         const files = await this.prisma.file.findMany({
           where: {
             ...(departmentId ? { departmentId } : {}),
-            ...(dateFrom || dateTo ? {
-              createdAt: {
-                ...(dateFrom ? { gte: dateFrom } : {}),
-                ...(dateTo ? { lte: dateTo } : {}),
-              },
-            } : {}),
+            ...(dateFrom || dateTo
+              ? {
+                  createdAt: {
+                    ...(dateFrom ? { gte: dateFrom } : {}),
+                    ...(dateTo ? { lte: dateTo } : {}),
+                  },
+                }
+              : {}),
           },
           include: {
             createdBy: { select: { name: true } },
@@ -441,7 +484,7 @@ export class AnalyticsService {
         return {
           generatedAt: new Date(),
           totalRecords: files.length,
-          files: files.map(f => ({
+          files: files.map((f) => ({
             fileNumber: f.fileNumber,
             subject: f.subject,
             status: f.status,
@@ -494,4 +537,3 @@ export class AnalyticsService {
     return Math.max(0, Math.min(100, Math.round(score)));
   }
 }
-
