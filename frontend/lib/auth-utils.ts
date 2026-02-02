@@ -1,0 +1,19 @@
+/**
+ * User may have `roles: string[]` (new) or legacy `role: string`.
+ * Use these helpers so both shapes work.
+ */
+export function getRoles(user: { roles?: string[]; role?: string } | null | undefined): string[] {
+  if (!user) return [];
+  if (user.roles?.length) return user.roles;
+  if (user.role) return [user.role];
+  return [];
+}
+
+export function hasRole(user: { roles?: string[]; role?: string } | null | undefined, role: string): boolean {
+  return getRoles(user).includes(role);
+}
+
+export function hasAnyRole(user: { roles?: string[]; role?: string } | null | undefined, roles: string[]): boolean {
+  const userRoles = getRoles(user);
+  return roles.some((r) => userRoles.includes(r));
+}
