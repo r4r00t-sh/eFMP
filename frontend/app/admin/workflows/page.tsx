@@ -82,7 +82,7 @@ export default function WorkflowsPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [workflows, setWorkflows] = useState<WorkflowItem[]>([]);
-  const [templates, setTemplates] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
@@ -106,7 +106,7 @@ export default function WorkflowsPage() {
     try {
       const response = await api.get('/workflows');
       setWorkflows(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to load workflows');
     } finally {
       setLoading(false);
@@ -139,7 +139,7 @@ export default function WorkflowsPage() {
       resetForm();
       // Navigate to workflow builder
       router.push(`/admin/workflows/${response.data.id}/builder`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to create workflow', {
         description: error.response?.data?.message,
       });
@@ -163,7 +163,7 @@ export default function WorkflowsPage() {
       });
       toast.success('Workflow created from template');
       router.push(`/admin/workflows/${response.data.id}/builder`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to create workflow from template');
     }
   };
@@ -175,7 +175,7 @@ export default function WorkflowsPage() {
       await api.post(`/workflows/${workflowId}/publish`);
       toast.success('Workflow published successfully');
       fetchWorkflows();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to publish workflow', {
         description: error.response?.data?.message,
       });
@@ -193,7 +193,7 @@ export default function WorkflowsPage() {
       });
       toast.success('Workflow cloned successfully');
       router.push(`/admin/workflows/${response.data.id}/builder`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to clone workflow');
     }
   };
@@ -205,7 +205,7 @@ export default function WorkflowsPage() {
       await api.delete(`/workflows/${workflowId}`);
       toast.success('Workflow deleted successfully');
       fetchWorkflows();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to delete workflow', {
         description: error.response?.data?.message,
       });

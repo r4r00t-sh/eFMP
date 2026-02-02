@@ -264,6 +264,8 @@ const navigation = {
   ],
 };
 
+type NavItem = { name: string; href?: string; icon: React.ComponentType<{ className?: string }>; children?: { name: string; href: string; icon: React.ComponentType<{ className?: string }> }[] };
+
 export function AppSidebar() {
   const { user, logout } = useAuthStore();
   const router = useRouter();
@@ -273,11 +275,12 @@ export function AppSidebar() {
     'Desk Management': false,
   });
 
+  const avatarUrl = useAvatarUrl(user?.id, user?.avatarKey ?? null);
+
   if (!user) return null;
 
-  const primaryRole = (user as any).roles?.[0] ?? (user as any).role ?? 'SECTION_OFFICER';
+  const primaryRole = (user as { roles?: string[]; role?: string }).roles?.[0] ?? (user as { role?: string }).role ?? 'SECTION_OFFICER';
   const userNav = navigation[primaryRole as keyof typeof navigation] || navigation.SECTION_OFFICER;
-  const avatarUrl = useAvatarUrl(user.id, user.avatarKey);
 
   const handleLogout = () => {
     logout();
@@ -288,12 +291,12 @@ export function AppSidebar() {
     setOpenItems(prev => ({ ...prev, [name]: !prev[name] }));
   };
 
-  const isItemActive = (item: any): boolean => {
+  const isItemActive = (item: NavItem): boolean => {
     if (item.href) {
       return pathname === item.href || pathname?.startsWith(item.href + '/');
     }
     if (item.children) {
-      return item.children.some((child: any) => 
+      return item.children.some((child) =>
         pathname === child.href || pathname?.startsWith(child.href + '/')
       );
     }
@@ -360,7 +363,7 @@ export function AppSidebar() {
                           </CollapsibleTrigger>
                           <CollapsibleContent className="CollapsibleContent">
                             <SidebarMenuSub className="ml-4 border-l border-border/50 pl-2 mt-1">
-                              {item.children.map((child: any) => {
+                              {item.children.map((child) => {
                                 const ChildIcon = child.icon;
                                 const childActive = pathname === child.href || pathname?.startsWith(child.href + '/');
                                 return (

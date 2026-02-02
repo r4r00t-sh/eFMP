@@ -93,7 +93,7 @@ export default function SettingsPage() {
       setAuth({ ...user, avatarKey: userRes.data.avatarKey }, localStorage.getItem('token') || '');
       toast.success('Avatar updated successfully');
       e.target.value = '';
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.response?.data?.message || 'Failed to upload avatar');
     } finally {
       setAvatarLoading(false);
@@ -110,7 +110,7 @@ export default function SettingsPage() {
       if (user) {
         setAuth({ ...user, name, email }, localStorage.getItem('token') || '');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.response?.data?.message || 'Failed to update profile');
     } finally {
       setLoading(false);
@@ -141,7 +141,7 @@ export default function SettingsPage() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.response?.data?.message || 'Failed to change password');
     } finally {
       setPasswordLoading(false);
@@ -486,7 +486,7 @@ export default function SettingsPage() {
             <CardContent className="p-8">
               <h3 className="font-semibold text-lg mb-3">Need Help?</h3>
               <p className="text-muted-foreground mb-6 leading-relaxed">
-                If you're having trouble with your account or have questions, contact your system administrator.
+                If you&apos;re having trouble with your account or have questions, contact your system administrator.
               </p>
               <Button variant="outline" size="lg" className="w-full h-12">
                 Contact Support

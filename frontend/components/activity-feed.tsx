@@ -30,7 +30,7 @@ interface Activity {
   message: string;
   timestamp: string;
   link?: string;
-  metadata?: any;
+  metadata?: unknown;
 }
 
 export function ActivityFeed() {

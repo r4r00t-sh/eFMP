@@ -63,8 +63,8 @@ function InboxContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuthStore();
-  const [files, setFiles] = useState<any[]>([]);
-  const [allFiles, setAllFiles] = useState<any[]>([]);
+  const [files, setFiles] = useState<unknown[]>([]);
+  const [allFiles, setAllFiles] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || 'all');
@@ -90,7 +90,7 @@ function InboxContent() {
       }
       setAllFiles(fetchedFiles);
       setFiles(fetchedFiles);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to load files');
     } finally {
       setLoading(false);
@@ -121,7 +121,7 @@ function InboxContent() {
   };
 
   const getStatusConfig = (status: string) => {
-    const config: Record<string, { color: string; bgColor: string; icon: any; label: string }> = {
+    const config: Record<string, { color: string; bgColor: string; icon: React.ComponentType<{ className?: string }>; label: string }> = {
       PENDING: { color: 'text-amber-600', bgColor: 'bg-amber-500/10', icon: Clock, label: 'Pending' },
       IN_PROGRESS: { color: 'text-blue-600', bgColor: 'bg-blue-500/10', icon: TrendingUp, label: 'In Progress' },
       APPROVED: { color: 'text-green-600', bgColor: 'bg-green-500/10', icon: CheckCircle2, label: 'Approved' },

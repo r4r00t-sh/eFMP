@@ -42,13 +42,13 @@ export function FileTimer({
   
   useEffect(() => {
     if (isOnHold) {
-      setTimeRemaining('On Hold');
-      return;
+      const id = requestAnimationFrame(() => setTimeRemaining('On Hold'));
+      return () => cancelAnimationFrame(id);
     }
 
     if (!deskArrivalTime || !allottedTime) {
-      setTimeRemaining('--:--:--');
-      return;
+      const id = requestAnimationFrame(() => setTimeRemaining('--:--:--'));
+      return () => cancelAnimationFrame(id);
     }
 
     const calculateRemaining = () => {

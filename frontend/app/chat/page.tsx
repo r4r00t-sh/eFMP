@@ -101,7 +101,7 @@ export default function ChatPage() {
       const res = await api.post<Conversation>(`/chat/dm/${selectedUser}`);
       setDmModal(false);
       router.push(`/chat/${res.data.id}`);
-    } catch (e: any) {
+    } catch (e: unknown) {
       alert(e.response?.data?.message || 'Failed to start conversation');
     }
   };
@@ -136,7 +136,7 @@ export default function ChatPage() {
       setGroupModal(false);
       setConversations((prev) => [res.data, ...prev]);
       router.push(`/chat/${res.data.id}`);
-    } catch (e: any) {
+    } catch (e: unknown) {
       alert(e.response?.data?.message || 'Failed to create group');
     }
   };

@@ -55,7 +55,7 @@ export function FileNotes({ fileId, notes: initialNotes, onNoteAdded, canEdit = 
       setNewNote('');
       toast.success('Note added');
       onNoteAdded?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to add note', {
         description: error.response?.data?.message || 'An error occurred',
       });

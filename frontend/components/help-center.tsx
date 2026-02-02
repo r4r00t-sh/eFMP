@@ -275,7 +275,7 @@ export function HelpCenter() {
         <div className="p-6 pt-4 border-t">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Can't find what you're looking for?
+              Can&apos;t find what you&apos;re looking for?
             </p>
             <Button variant="outline" size="sm">
               <MessageSquare className="h-4 w-4 mr-2" />

@@ -60,7 +60,7 @@ export default function OpinionInboxPage() {
     try {
       const response = await api.get('/opinions/pending');
       setOpinions(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to load opinion requests');
     } finally {
       setLoading(false);
@@ -85,7 +85,7 @@ export default function OpinionInboxPage() {
             Opinion Inbox
           </h1>
           <p className="text-muted-foreground mt-1">
-            Files requiring your department's opinion
+            Files requiring your department&apos;s opinion
           </p>
         </div>
         <Button variant="outline" onClick={fetchOpinions}>
@@ -99,7 +99,7 @@ export default function OpinionInboxPage() {
             <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
             <h3 className="text-lg font-medium mb-2">No opinion requests</h3>
             <p className="text-muted-foreground">
-              You don't have any pending opinion requests at the moment
+              You don&apos;t have any pending opinion requests at the moment
             </p>
           </CardContent>
         </Card>

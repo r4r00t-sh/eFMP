@@ -31,7 +31,7 @@ import api from '@/lib/api';
 interface Command {
   id: string;
   label: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   action: () => void;
   keywords?: string[];
 }
@@ -39,7 +39,7 @@ interface Command {
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [fileResults, setFileResults] = useState<any[]>([]);
+  const [fileResults, setFileResults] = useState<Record<string, unknown>[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const router = useRouter();
   const { user } = useAuthStore();
@@ -67,8 +67,8 @@ export function CommandPalette() {
     if (!open) return;
     const q = searchQuery.trim();
     if (q.length < 2) {
-      setFileResults([]);
-      return;
+      const id = requestAnimationFrame(() => setFileResults([]));
+      return () => cancelAnimationFrame(id);
     }
     const t = setTimeout(() => {
       setLoadingFiles(true);

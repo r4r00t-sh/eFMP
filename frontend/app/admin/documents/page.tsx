@@ -110,7 +110,7 @@ export default function DocumentManagementPage() {
   // QR Scanner state
   const [qrData, setQrData] = useState('');
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<any>(null);
+  const [scanResult, setScanResult] = useState<unknown>(null);
 
   useEffect(() => {
     fetchTemplates();
@@ -124,7 +124,7 @@ export default function DocumentManagementPage() {
         params: selectedCategory !== 'all' ? { category: selectedCategory } : {},
       });
       setTemplates(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to load templates');
     } finally {
       setLoading(false);
@@ -135,7 +135,7 @@ export default function DocumentManagementPage() {
     try {
       const response = await api.get('/documents/templates-categories');
       setCategories(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load categories');
     }
   };
@@ -164,7 +164,7 @@ export default function DocumentManagementPage() {
       });
       fetchTemplates();
       fetchCategories();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to create template', {
         description: error.response?.data?.message,
       });
@@ -181,7 +181,7 @@ export default function DocumentManagementPage() {
       toast.success('Template deleted');
       fetchTemplates();
       fetchCategories();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to delete template');
     }
   };
@@ -200,7 +200,7 @@ export default function DocumentManagementPage() {
       });
       setScanResult(response.data);
       toast.success('QR code scanned successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('QR code not recognized', {
         description: error.response?.data?.message,
       });

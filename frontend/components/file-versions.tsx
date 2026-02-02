@@ -69,7 +69,7 @@ export function FileVersions({ attachmentId, attachmentName, canEdit, onVersionC
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [changeDescription, setChangeDescription] = useState('');
   const [compareVersions, setCompareVersions] = useState<{ v1: string; v2: string } | null>(null);
-  const [comparisonResult, setComparisonResult] = useState<any>(null);
+  const [comparisonResult, setComparisonResult] = useState<unknown>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -81,7 +81,7 @@ export function FileVersions({ attachmentId, attachmentName, canEdit, onVersionC
     try {
       const response = await api.get(`/documents/attachments/${attachmentId}/versions`);
       setVersions(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If no versions found, it's just the original file
       setVersions([]);
     } finally {
@@ -113,7 +113,7 @@ export function FileVersions({ attachmentId, attachmentName, canEdit, onVersionC
       setChangeDescription('');
       fetchVersions();
       onVersionChange?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to upload new version', {
         description: error.response?.data?.message,
       });
@@ -130,7 +130,7 @@ export function FileVersions({ attachmentId, attachmentName, canEdit, onVersionC
       toast.success(`Restored to version ${versionNumber}`);
       fetchVersions();
       onVersionChange?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to restore version');
     }
   };
@@ -148,7 +148,7 @@ export function FileVersions({ attachmentId, attachmentName, canEdit, onVersionC
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to download version');
     }
   };
@@ -162,7 +162,7 @@ export function FileVersions({ attachmentId, attachmentName, canEdit, onVersionC
       });
       setComparisonResult(response.data);
       setShowCompareDialog(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to compare versions');
     }
   };
@@ -239,7 +239,7 @@ export function FileVersions({ attachmentId, attachmentName, canEdit, onVersionC
                   </div>
                   {version.changeDescription && (
                     <p className="text-xs text-muted-foreground mt-1 italic">
-                      "{version.changeDescription}"
+                      {'\u0022'}{version.changeDescription}{'\u0022'}
                     </p>
                   )}
                 </div>
@@ -284,7 +284,7 @@ export function FileVersions({ attachmentId, attachmentName, canEdit, onVersionC
           <DialogHeader>
             <DialogTitle>Upload New Version</DialogTitle>
             <DialogDescription>
-              Upload a new version of "{attachmentName}"
+              Upload a new version of {'\u0022'}{attachmentName}{'\u0022'}
             </DialogDescription>
           </DialogHeader>
 

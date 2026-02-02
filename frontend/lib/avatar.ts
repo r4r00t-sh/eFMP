@@ -13,7 +13,7 @@ export function useAvatarUrl(userId: string | undefined, avatarKey: string | nul
 
   useEffect(() => {
     if (!userId || !avatarKey) {
-      setUrl(null);
+      queueMicrotask(() => setUrl(null));
       return;
     }
 

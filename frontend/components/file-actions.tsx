@@ -39,7 +39,7 @@ type ActionType = 'approve' | 'reject' | 'return' | 'hold' | 'extra_time' | 'rec
 interface ActionConfig {
   title: string;
   description: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   color: string;
   requiresRemarks: boolean;
   requiresDays?: boolean;
@@ -115,7 +115,7 @@ export function FileActions({
     setLoading(true);
     try {
       let endpoint = '';
-      let payload: any = {};
+      let payload: Record<string, unknown> = {};
 
       switch (actionType) {
         case 'approve':
@@ -150,7 +150,7 @@ export function FileActions({
       setRemarks('');
       setAdditionalDays(1);
       onActionComplete?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Action failed', {
         description: error.response?.data?.message || 'An error occurred',
       });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { CheckCircle, Trophy, Star, Zap } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,21 +26,12 @@ export function SuccessCelebration({
 }: SuccessCelebrationProps) {
   const [visible, setVisible] = useState(false);
 
-  useEffect(() => {
-    if (show) {
-      setVisible(true);
-      triggerConfetti(type);
-      
-      // Auto-close after 5 seconds
-      const timer = setTimeout(() => {
-        handleClose();
-      }, 5000);
+  const handleClose = useCallback(() => {
+    setVisible(false);
+    setTimeout(onClose, 300);
+  }, [onClose]);
 
-      return () => clearTimeout(timer);
-    }
-  }, [show, type]);
-
-  const triggerConfetti = (celebrationType: string) => {
+  const triggerConfetti = useCallback((celebrationType: string) => {
     const duration = 3000;
     const animationEnd = Date.now() + duration;
     const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10000 };
@@ -49,7 +40,7 @@ export function SuccessCelebration({
       return Math.random() * (max - min) + min;
     }
 
-    const interval: any = setInterval(function() {
+    const interval: ReturnType<typeof setInterval> = setInterval(function() {
       const timeLeft = animationEnd - Date.now();
 
       if (timeLeft <= 0) {
@@ -94,12 +85,24 @@ export function SuccessCelebration({
         });
       }
     }, 250);
-  };
+  }, []);
 
-  const handleClose = () => {
-    setVisible(false);
-    setTimeout(onClose, 300);
-  };
+  useEffect(() => {
+    if (show) {
+      const id = requestAnimationFrame(() => setVisible(true));
+      triggerConfetti(type);
+
+      // Auto-close after 5 seconds
+      const timer = setTimeout(() => {
+        handleClose();
+      }, 5000);
+
+      return () => {
+        cancelAnimationFrame(id);
+        clearTimeout(timer);
+      };
+    }
+  }, [show, type, triggerConfetti, handleClose]);
 
   const getIcon = () => {
     switch (type) {

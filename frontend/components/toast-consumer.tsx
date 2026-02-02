@@ -17,10 +17,10 @@ export function ToastConsumer() {
     // This is a placeholder - you'd implement actual RabbitMQ consumer via backend WebSocket
 
     // Example: Listen for actionable toasts
-    const handleActionableToast = async (toastData: any) => {
+    const handleActionableToast = async (toastData: Record<string, unknown>) => {
       if (toastData.userId !== user.id) return;
 
-      const actionButtons = toastData.actions?.map((action: any) => (
+      const actionButtons = toastData.actions?.map((action: Record<string, unknown>) => (
         <Button
           key={action.action}
           size="sm"

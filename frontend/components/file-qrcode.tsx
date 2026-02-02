@@ -81,7 +81,7 @@ export function FileQRCode({ fileId, fileNumber }: FileQRCodeProps) {
       setQrImageUrl(url);
       
       toast.success('QR code generated successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to generate QR code', {
         description: error.response?.data?.message,
       });
@@ -105,7 +105,7 @@ export function FileQRCode({ fileId, fileNumber }: FileQRCodeProps) {
         setQrImageUrl(url);
       }
       setScans(response.data.scans || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // QR code doesn't exist yet
       setQrCode(null);
       setScans([]);

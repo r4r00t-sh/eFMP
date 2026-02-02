@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils';
 
 type PageItem = { label: string; path: string; icon: React.ElementType; keywords: string[] };
 
-function getPagesForUser(user: any): PageItem[] {
+function getPagesForUser(user: Record<string, unknown>): PageItem[] {
   const pages: PageItem[] = [
     { label: 'Dashboard', path: '/dashboard', icon: Home, keywords: ['home', 'overview'] },
     { label: 'File Inbox', path: '/files/inbox', icon: Inbox, keywords: ['inbox', 'files', 'pending'] },
@@ -52,7 +52,7 @@ export default function SearchPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [query, setQuery] = useState('');
-  const [fileResults, setFileResults] = useState<any[]>([]);
+  const [fileResults, setFileResults] = useState<Record<string, unknown>[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const minQueryLength = 2;
 

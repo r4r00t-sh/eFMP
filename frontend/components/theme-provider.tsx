@@ -32,11 +32,14 @@ export function ThemeProvider({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const stored = localStorage.getItem(storageKey) as Theme | null;
-    if (stored) {
-      setTheme(stored);
-    }
+    const id = requestAnimationFrame(() => {
+      setMounted(true);
+      const stored = localStorage.getItem(storageKey) as Theme | null;
+      if (stored) {
+        setTheme(stored);
+      }
+    });
+    return () => cancelAnimationFrame(id);
   }, [storageKey]);
 
   useEffect(() => {

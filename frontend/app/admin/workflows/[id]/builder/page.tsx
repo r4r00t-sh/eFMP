@@ -57,12 +57,12 @@ export default function WorkflowBuilderPage() {
   const router = useRouter();
   const workflowId = params.id as string;
 
-  const [workflow, setWorkflow] = useState<any>(null);
+  const [workflow, setWorkflow] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
   const [showAddNodeDialog, setShowAddNodeDialog] = useState(false);
   const [showAddEdgeDialog, setShowAddEdgeDialog] = useState(false);
-  const [selectedNode, setSelectedNode] = useState<any>(null);
-  const [validation, setValidation] = useState<any>(null);
+  const [selectedNode, setSelectedNode] = useState<unknown>(null);
+  const [validation, setValidation] = useState<unknown>(null);
 
   const [nodeForm, setNodeForm] = useState({
     nodeId: '',
@@ -79,7 +79,7 @@ export default function WorkflowBuilderPage() {
     sourceNodeId: '',
     targetNodeId: '',
     label: '',
-    condition: null as any,
+    condition: null as unknown,
   });
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export default function WorkflowBuilderPage() {
     try {
       const response = await api.get(`/workflows/${workflowId}`);
       setWorkflow(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to load workflow');
       router.push('/admin/workflows');
     } finally {
@@ -122,7 +122,7 @@ export default function WorkflowBuilderPage() {
       await api.post(`/workflows/${workflowId}/publish`);
       toast.success('Workflow published successfully');
       fetchWorkflow();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to publish workflow', {
         description: error.response?.data?.message,
       });
@@ -136,7 +136,7 @@ export default function WorkflowBuilderPage() {
       setShowAddNodeDialog(false);
       fetchWorkflow();
       resetNodeForm();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to add node');
     }
   };
@@ -148,7 +148,7 @@ export default function WorkflowBuilderPage() {
       setShowAddEdgeDialog(false);
       fetchWorkflow();
       resetEdgeForm();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to add connection');
     }
   };
@@ -160,7 +160,7 @@ export default function WorkflowBuilderPage() {
       await api.delete(`/workflows/nodes/${nodeId}`);
       toast.success('Node deleted');
       fetchWorkflow();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to delete node');
     }
   };
@@ -172,7 +172,7 @@ export default function WorkflowBuilderPage() {
       await api.delete(`/workflows/edges/${edgeId}`);
       toast.success('Connection deleted');
       fetchWorkflow();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to delete connection');
     }
   };
@@ -319,7 +319,7 @@ export default function WorkflowBuilderPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {workflow.nodes?.map((node: any) => {
+            {workflow.nodes?.map((node: Record<string, unknown>) => {
               const NodeIcon = getNodeIcon(node.nodeType);
               return (
                 <Card key={node.id}>
@@ -395,9 +395,9 @@ export default function WorkflowBuilderPage() {
           <Card>
             <CardContent className="p-0">
               <div className="divide-y">
-                {workflow.edges?.map((edge: any) => {
-                  const sourceNode = workflow.nodes.find((n: any) => n.id === edge.sourceNodeId);
-                  const targetNode = workflow.nodes.find((n: any) => n.id === edge.targetNodeId);
+                {workflow.edges?.map((edge: Record<string, unknown>) => {
+                  const sourceNode = workflow.nodes.find((n: Record<string, unknown>) => n.id === edge.sourceNodeId);
+                  const targetNode = workflow.nodes.find((n: Record<string, unknown>) => n.id === edge.targetNodeId);
                   
                   return (
                     <div key={edge.id} className="p-4 flex items-center justify-between hover:bg-muted/50">
@@ -409,7 +409,7 @@ export default function WorkflowBuilderPage() {
                         </div>
                         {edge.label && (
                           <span className="text-sm text-muted-foreground">
-                            "{edge.label}"
+                            {'\u0022'}{edge.label}{'\u0022'}
                           </span>
                         )}
                       </div>
@@ -585,7 +585,7 @@ export default function WorkflowBuilderPage() {
                   <SelectValue placeholder="Select source node" />
                 </SelectTrigger>
                 <SelectContent>
-                  {workflow.nodes?.map((node: any) => (
+                  {workflow.nodes?.map((node: Record<string, unknown>) => (
                     <SelectItem key={node.id} value={node.id}>
                       {node.label}
                     </SelectItem>
@@ -604,7 +604,7 @@ export default function WorkflowBuilderPage() {
                   <SelectValue placeholder="Select target node" />
                 </SelectTrigger>
                 <SelectContent>
-                  {workflow.nodes?.map((node: any) => (
+                  {workflow.nodes?.map((node: Record<string, unknown>) => (
                     <SelectItem key={node.id} value={node.id}>
                       {node.label}
                     </SelectItem>

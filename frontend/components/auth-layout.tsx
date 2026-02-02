@@ -7,7 +7,6 @@ import { useAuthStore } from '@/lib/store';
 import { AppSidebar } from '@/components/app-sidebar';
 import { Navbar } from '@/components/navbar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { Separator } from '@/components/ui/separator';
 import { PresenceClient } from '@/components/presence-client';
 import { ToastConsumer } from '@/components/toast-consumer';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -28,7 +27,8 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !!user;
 
   useEffect(() => {
-    setMounted(true);
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
   }, []);
 
   // Floating chat FAB + sidebar: render in portal so they're always on top and visible

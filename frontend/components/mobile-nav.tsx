@@ -43,7 +43,7 @@ export function MobileNav() {
 
   if (!user) return null;
 
-  const primaryRole = (user as any).roles?.[0] ?? (user as any).role ?? 'SECTION_OFFICER';
+  const primaryRole = (user as { roles?: string[]; role?: string }).roles?.[0] ?? (user as { role?: string }).role ?? 'SECTION_OFFICER';
   const userNav = navigation[primaryRole as keyof typeof navigation] || navigation.SECTION_OFFICER;
 
   return (

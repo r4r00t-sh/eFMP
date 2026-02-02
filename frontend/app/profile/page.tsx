@@ -138,7 +138,7 @@ export default function ProfilePage() {
       toast.success('Profile updated successfully');
       setEditing(false);
       fetchProfile();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to update profile', {
         description: error.response?.data?.message,
       });
@@ -171,7 +171,7 @@ export default function ProfilePage() {
       setAuth({ ...user, avatarKey: userRes.data.avatarKey }, localStorage.getItem('token') || '');
       toast.success('Avatar updated successfully');
       e.target.value = '';
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.response?.data?.message || 'Failed to upload avatar');
     } finally {
       setAvatarLoading(false);

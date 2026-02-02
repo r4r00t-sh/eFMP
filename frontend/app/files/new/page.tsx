@@ -108,7 +108,7 @@ export default function NewFilePage() {
         if (user.departmentId) {
           const divResponse = await api.get(`/departments/${user.departmentId}/divisions`);
           const divisions = divResponse.data || [];
-          const userDiv = divisions.find((d: any) => d.id === user.divisionId);
+          const userDiv = divisions.find((d: Record<string, unknown>) => d.id === user.divisionId);
           if (userDiv) {
             setUserDivision(userDiv);
           }
@@ -279,7 +279,7 @@ export default function NewFilePage() {
       });
 
       router.push(`/files/${response.data.id}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to create file', {
         description: error.response?.data?.message || 'An error occurred',
       });

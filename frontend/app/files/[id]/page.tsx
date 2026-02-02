@@ -93,8 +93,8 @@ interface FileDetails {
   assignedTo?: { id: string; name: string; email?: string };
   department: { id: string; name: string; code: string };
   currentDivision?: { id: string; name: string };
-  notes: any[];
-  routingHistory: any[];
+  notes: unknown[];
+  routingHistory: unknown[];
   attachments?: Attachment[];
 }
 
@@ -160,7 +160,7 @@ function AttachmentsSection({
 
       toast.success(`${files.length} file(s) uploaded successfully`);
       onUpdate();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to upload files', {
         description: error.response?.data?.message,
       });
@@ -360,7 +360,7 @@ function FileDetailContent() {
     try {
       const response = await api.get(`/files/${fileId}`);
       setFile(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to load file', {
         description: error.response?.data?.message || 'File not found',
       });
@@ -371,7 +371,7 @@ function FileDetailContent() {
   };
 
   const getStatusConfig = (status: string) => {
-    const config: Record<string, { variant: any; label: string; color: string; bgColor: string }> = {
+    const config: Record<string, { variant: string; label: string; color: string; bgColor: string }> = {
       PENDING: { variant: 'secondary', label: 'Pending', color: 'text-amber-600', bgColor: 'bg-amber-500/10' },
       IN_PROGRESS: { variant: 'default', label: 'In Progress', color: 'text-blue-600', bgColor: 'bg-blue-500/10' },
       APPROVED: { variant: 'default', label: 'Approved', color: 'text-green-600', bgColor: 'bg-green-500/10' },

@@ -37,7 +37,7 @@ interface FileHistoryProps {
   createdBy?: { id: string; name: string };
 }
 
-const actionConfig: Record<string, { icon: any; color: string; bgColor: string; label: string }> = {
+const actionConfig: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; bgColor: string; label: string }> = {
   CREATED: { icon: FileText, color: 'text-primary', bgColor: 'bg-primary/10', label: 'Created' },
   FORWARDED: { icon: Send, color: 'text-blue-600', bgColor: 'bg-blue-500/10', label: 'Forwarded' },
   APPROVED: { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-500/10', label: 'Approved' },
@@ -146,7 +146,7 @@ export function FileHistory({ routingHistory, createdAt, createdBy }: FileHistor
 
                 {entry.remarks && (
                   <p className="text-sm text-muted-foreground italic">
-                    "{entry.remarks}"
+                    {'\u0022'}{entry.remarks}{'\u0022'}
                   </p>
                 )}
 

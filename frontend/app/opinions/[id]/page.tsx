@@ -41,7 +41,7 @@ export default function OpinionDetailPage() {
   const opinionRequestId = params.id as string;
 
   const [loading, setLoading] = useState(true);
-  const [fileData, setFileData] = useState<any>(null);
+  const [fileData, setFileData] = useState<unknown>(null);
   const [opinionNote, setOpinionNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
@@ -55,7 +55,7 @@ export default function OpinionDetailPage() {
     try {
       const response = await api.get(`/opinions/requests/${opinionRequestId}/file`);
       setFileData(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to load opinion request');
       router.push('/opinions/inbox');
     } finally {
@@ -76,7 +76,7 @@ export default function OpinionDetailPage() {
       toast.success('Opinion note added');
       setOpinionNote('');
       fetchFileData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to add opinion note');
     }
   };
@@ -94,7 +94,7 @@ export default function OpinionDetailPage() {
       });
       toast.success('Opinion submitted successfully');
       router.push('/opinions/inbox');
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to submit opinion');
     } finally {
       setSubmitting(false);
@@ -207,7 +207,7 @@ export default function OpinionDetailPage() {
           <CardContent>
             <div className="space-y-4 max-h-[400px] overflow-auto">
               {file.notes && file.notes.length > 0 ? (
-                file.notes.map((note: any) => (
+                file.notes.map((note: Record<string, unknown>) => (
                   <div key={note.id} className="p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">{note.user.name}</span>
@@ -240,7 +240,7 @@ export default function OpinionDetailPage() {
             {/* Opinion Notes List */}
             <div className="space-y-3 max-h-[200px] overflow-auto">
               {file.opinionNotes && file.opinionNotes.length > 0 ? (
-                file.opinionNotes.map((note: any) => (
+                file.opinionNotes.map((note: Record<string, unknown>) => (
                   <div key={note.id} className="p-3 rounded-lg bg-primary/5 border border-primary/20">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">{note.addedBy.name}</span>
@@ -284,7 +284,7 @@ export default function OpinionDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-2">
-              {file.attachments.map((att: any) => (
+              {file.attachments.map((att: Record<string, unknown>) => (
                 <div key={att.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div className="flex items-center gap-3">
                     <FileText className="h-5 w-5 text-muted-foreground" />

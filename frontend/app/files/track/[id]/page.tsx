@@ -63,7 +63,7 @@ interface FileTracking {
   }[];
 }
 
-const statusConfig: Record<string, { icon: any; color: string; bgColor: string; label: string }> = {
+const statusConfig: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; bgColor: string; label: string }> = {
   PENDING: { icon: Clock, color: 'text-amber-600', bgColor: 'bg-amber-500/10', label: 'Pending' },
   IN_PROGRESS: { icon: TrendingUp, color: 'text-blue-600', bgColor: 'bg-blue-500/10', label: 'In Progress' },
   APPROVED: { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-500/10', label: 'Approved' },
@@ -73,7 +73,7 @@ const statusConfig: Record<string, { icon: any; color: string; bgColor: string; 
   RECALLED: { icon: AlertTriangle, color: 'text-purple-600', bgColor: 'bg-purple-500/10', label: 'Recalled' },
 };
 
-const actionConfig: Record<string, { icon: any; color: string; bgColor: string; borderColor: string; label: string }> = {
+const actionConfig: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; bgColor: string; borderColor: string; label: string }> = {
   CREATED: { icon: FileText, color: 'text-emerald-600', bgColor: 'bg-emerald-500', borderColor: 'border-emerald-500', label: 'Created' },
   FORWARDED: { icon: Send, color: 'text-blue-600', bgColor: 'bg-blue-500', borderColor: 'border-blue-500', label: 'Forwarded' },
   APPROVED: { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-500', borderColor: 'border-green-500', label: 'Approved' },
@@ -127,7 +127,7 @@ export default function FileTraceroutePage() {
     try {
       const response = await api.get(`/files/${fileId}`);
       setFile(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to load file', {
         description: error.response?.data?.message || 'File not found',
       });

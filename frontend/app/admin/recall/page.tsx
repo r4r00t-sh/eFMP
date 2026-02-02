@@ -49,7 +49,7 @@ export default function RecallProtocolPage() {
       });
       setOpen(false);
       setFileId('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to recall file', {
         description: error.response?.data?.message || 'The file may not exist or cannot be recalled.',
       });

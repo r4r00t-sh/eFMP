@@ -65,7 +65,7 @@ export function QuickActions({
   const [extensionReason, setExtensionReason] = useState('');
   const [extensionDays, setExtensionDays] = useState('1');
 
-  const performAction = async (action: string, data?: any) => {
+  const performAction = async (action: string, data?: unknown) => {
     setLoading(action);
     try {
       await api.post(`/files/${fileId}/action`, {
@@ -76,7 +76,7 @@ export function QuickActions({
       toast.success(`File ${action} successfully`);
       onActionComplete();
       resetDialogs();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(`Failed to ${action} file`, {
         description: error.response?.data?.message,
       });
@@ -111,7 +111,7 @@ export function QuickActions({
         description: 'Waiting for originator approval',
       });
       resetDialogs();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to request extension', {
         description: error.response?.data?.message,
       });

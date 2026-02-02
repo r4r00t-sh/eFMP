@@ -24,7 +24,7 @@ function FilesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const statusFilter = searchParams.get('status');
-  const [files, setFiles] = useState<any[]>([]);
+  const [files, setFiles] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -52,7 +52,7 @@ function FilesContent() {
   };
 
   const getStatusBadge = (status: string) => {
-    const config: Record<string, { variant: any; label: string }> = {
+    const config: Record<string, { variant: string; label: string }> = {
       PENDING: { variant: 'secondary', label: 'Pending' },
       IN_PROGRESS: { variant: 'default', label: 'In Progress' },
       APPROVED: { variant: 'default', label: 'Approved' },

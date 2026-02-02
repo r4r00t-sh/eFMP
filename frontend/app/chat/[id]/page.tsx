@@ -82,7 +82,7 @@ export default function ChatConversationPage() {
     try {
       const res = await api.get<Conversation>(`/chat/conversations/${id}`);
       setConversation(res.data);
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e.response?.status === 403 || e.response?.status === 404) {
         router.replace('/chat');
         return;
@@ -163,7 +163,7 @@ export default function ChatConversationPage() {
       setMessages((prev) => [...prev, res.data]);
       setInput('');
       scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-    } catch (e: any) {
+    } catch (e: unknown) {
       alert(e.response?.data?.message || 'Failed to send');
     } finally {
       setSending(false);
@@ -189,7 +189,7 @@ export default function ChatConversationPage() {
       await api.post(`/chat/conversations/${id}/members`, { userIds: selectedUserIds });
       await loadConversation();
       setAddMembersOpen(false);
-    } catch (e: any) {
+    } catch (e: unknown) {
       alert(e.response?.data?.message || 'Failed to add members');
     }
   };

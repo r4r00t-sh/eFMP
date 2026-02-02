@@ -67,7 +67,7 @@ export function ExportDialog({
 
       toast.success('Export completed successfully');
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Export failed', {
         description: error.response?.data?.message || 'Failed to export data',
       });
@@ -92,7 +92,7 @@ export function ExportDialog({
         <div className="space-y-6 py-4">
           <div className="space-y-3">
             <Label>Export Format</Label>
-            <RadioGroup value={format} onValueChange={(v: any) => setFormat(v)}>
+            <RadioGroup value={format} onValueChange={(v: string) => setFormat(v)}>
               <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer">
                 <RadioGroupItem value="excel" id="excel" />
                 <FileSpreadsheet className="h-5 w-5 text-green-600" />

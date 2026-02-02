@@ -41,7 +41,7 @@ interface BulkActionsProps {
   onDelete?: () => void;
   actions?: Array<{
     label: string;
-    icon: any;
+    icon: React.ComponentType<{ className?: string }>;
     onClick: () => void;
     variant?: 'default' | 'destructive';
   }>;

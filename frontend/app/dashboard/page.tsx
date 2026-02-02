@@ -36,7 +36,7 @@ interface DashboardStats {
   approvedFiles: number;
   rejectedFiles: number;
   redListedFiles: number;
-  recentFiles: any[];
+  recentFiles: unknown[];
 }
 
 export default function DashboardPage() {
@@ -56,11 +56,11 @@ export default function DashboardPage() {
 
       const stats: DashboardStats = {
         totalFiles: files.length,
-        pendingFiles: files.filter((f: any) => f.status === 'PENDING').length,
-        inProgressFiles: files.filter((f: any) => f.status === 'IN_PROGRESS').length,
-        approvedFiles: files.filter((f: any) => f.status === 'APPROVED').length,
-        rejectedFiles: files.filter((f: any) => f.status === 'REJECTED').length,
-        redListedFiles: files.filter((f: any) => f.isRedListed).length,
+        pendingFiles: files.filter((f: Record<string, unknown>) => f.status === 'PENDING').length,
+        inProgressFiles: files.filter((f: Record<string, unknown>) => f.status === 'IN_PROGRESS').length,
+        approvedFiles: files.filter((f: Record<string, unknown>) => f.status === 'APPROVED').length,
+        rejectedFiles: files.filter((f: Record<string, unknown>) => f.status === 'REJECTED').length,
+        redListedFiles: files.filter((f: Record<string, unknown>) => f.isRedListed).length,
         recentFiles: files.slice(0, 6),
       };
 
@@ -73,7 +73,7 @@ export default function DashboardPage() {
   };
 
   const getStatusConfig = (status: string) => {
-    const config: Record<string, { color: string; bgColor: string; icon: any; label: string }> = {
+    const config: Record<string, { color: string; bgColor: string; icon: React.ComponentType<{ className?: string }>; label: string }> = {
       PENDING: { color: 'text-amber-600', bgColor: 'bg-amber-500/10', icon: Clock, label: 'Pending' },
       IN_PROGRESS: { color: 'text-blue-600', bgColor: 'bg-blue-500/10', icon: TrendingUp, label: 'In Progress' },
       APPROVED: { color: 'text-green-600', bgColor: 'bg-green-500/10', icon: CheckCircle2, label: 'Approved' },
@@ -128,7 +128,7 @@ export default function DashboardPage() {
             <Sparkles className="h-6 w-6 text-amber-500" />
           </div>
           <p className="text-muted-foreground text-lg">
-            Here's an overview of your file activity for today, {format(new Date(), 'EEEE, MMMM d')}
+            Here&apos;s an overview of your file activity for today, {format(new Date(), 'EEEE, MMMM d')}
           </p>
         </div>
         <div className="flex gap-3">

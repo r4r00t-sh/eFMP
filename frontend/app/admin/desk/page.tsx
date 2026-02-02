@@ -111,7 +111,7 @@ export default function DeskPage() {
     try {
       const response = await api.get('/admin/desk-status');
       setUsers(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to load desk status');
     } finally {
       setLoading(false);

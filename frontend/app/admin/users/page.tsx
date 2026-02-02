@@ -184,7 +184,7 @@ export default function UsersPage() {
       setIsCreateOpen(false);
       resetForm();
       fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.response?.data?.message || 'Failed to create user');
     } finally {
       setFormLoading(false);
@@ -206,7 +206,7 @@ export default function UsersPage() {
       toast.success('User updated successfully');
       setIsEditOpen(false);
       fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.response?.data?.message || 'Failed to update user');
     } finally {
       setFormLoading(false);
@@ -271,7 +271,7 @@ export default function UsersPage() {
       clearSelection();
       setDeleteDialogOpen(false);
       fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.response?.data?.message || 'Failed to deactivate users');
     } finally {
       setBulkLoading(false);
@@ -291,7 +291,7 @@ export default function UsersPage() {
       clearSelection();
       setDeactivateDialogOpen(false);
       fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to update users');
     } finally {
       setBulkLoading(false);
@@ -308,7 +308,7 @@ export default function UsersPage() {
       toast.success(`${lastUndoable.ids.length} user(s) reactivated`);
       setLastUndoable(null);
       fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to undo');
     } finally {
       setBulkLoading(false);

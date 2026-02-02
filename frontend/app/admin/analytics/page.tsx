@@ -144,9 +144,10 @@ export default function AnalyticsDashboardPage() {
         const deptRes = await api.get('/analytics/departments');
         setDepartmentAnalytics(deptRes.data);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to load analytics', {
-        description: error.response?.data?.message || 'Please try again',
+        description: err.response?.data?.message || 'Please try again',
       });
     } finally {
       setLoading(false);
@@ -169,7 +170,7 @@ export default function AnalyticsDashboardPage() {
       link.remove();
       
       toast.success('Report exported successfully');
-    } catch (error: any) {
+    } catch {
       toast.error('Failed to export report');
     } finally {
       setExporting(false);

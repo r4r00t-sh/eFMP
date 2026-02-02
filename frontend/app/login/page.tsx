@@ -30,7 +30,7 @@ export default function LoginPage() {
         description: `Logged in as ${response.data.user.name}`,
       });
       router.push('/dashboard');
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Login failed', {
         description: error.response?.data?.message || 'Invalid username or password',
       });

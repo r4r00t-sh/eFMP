@@ -78,9 +78,9 @@ export default function DesksPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedDesk, setSelectedDesk] = useState<Desk | null>(null);
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [divisions, setDivisions] = useState<any[]>([]);
-  const [workloadSummary, setWorkloadSummary] = useState<any>(null);
+  const [departments, setDepartments] = useState<unknown[]>([]);
+  const [divisions, setDivisions] = useState<unknown[]>([]);
+  const [workloadSummary, setWorkloadSummary] = useState<unknown>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -103,7 +103,7 @@ export default function DesksPage() {
     try {
       const response = await api.get('/desks');
       setDesks(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to load desks');
     } finally {
       setLoading(false);
@@ -136,7 +136,7 @@ export default function DesksPage() {
       resetForm();
       fetchDesks();
       fetchWorkloadSummary();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.response?.data?.message || 'Failed to create desk');
     }
   };
@@ -155,7 +155,7 @@ export default function DesksPage() {
       resetForm();
       fetchDesks();
       fetchWorkloadSummary();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to update desk');
     }
   };
@@ -167,7 +167,7 @@ export default function DesksPage() {
       toast.success('Desk deleted successfully');
       fetchDesks();
       fetchWorkloadSummary();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error.response?.data?.message || 'Failed to delete desk');
     }
   };

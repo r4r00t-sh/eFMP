@@ -46,7 +46,7 @@ export function Navbar() {
       SECTION_OFFICER: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800',
       INWARD_DESK: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800',
     };
-    const primaryRole = (user as any).roles?.[0] ?? (user as any).role ?? '';
+    const primaryRole = (user as { roles?: string[]; role?: string }).roles?.[0] ?? (user as { role?: string }).role ?? '';
     return roleStyles[primaryRole] || 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-800';
   };
 
@@ -91,7 +91,7 @@ export function Navbar() {
             getRoleBadgeStyle()
           )}
         >
-          {((user as any).roles?.[0] ?? (user as any).role ?? '').replace('_', ' ')}
+          {(((user as { roles?: string[]; role?: string }).roles?.[0] ?? (user as { role?: string }).role ?? '')).replace('_', ' ')}
         </Badge>
         
         <Separator orientation="vertical" className="hidden sm:block h-5 mx-1" />
