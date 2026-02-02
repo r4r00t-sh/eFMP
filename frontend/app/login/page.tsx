@@ -31,8 +31,9 @@ export default function LoginPage() {
       });
       router.push('/dashboard');
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Login failed', {
-        description: error.response?.data?.message || 'Invalid username or password',
+        description: err.response?.data?.message || 'Invalid username or password',
       });
     } finally {
       setLoading(false);

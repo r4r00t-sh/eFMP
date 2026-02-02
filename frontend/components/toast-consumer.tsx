@@ -20,30 +20,33 @@ export function ToastConsumer() {
     const handleActionableToast = async (toastData: Record<string, unknown>) => {
       if (toastData.userId !== user.id) return;
 
-      const actionButtons = toastData.actions?.map((action: Record<string, unknown>) => (
+      const actions = toastData.actions as Array<Record<string, unknown>> | undefined;
+      const actionButtons = actions?.map((action: Record<string, unknown>) => (
         <Button
-          key={action.action}
+          key={String(action.action ?? '')}
           size="sm"
           onClick={async () => {
             if (action.action === 'request_extra_time') {
               // Handle request extra time
             } else if (action.action === 'approve_time') {
-              await api.post(`/files/${action.payload.fileId}/approve-time`, {
-                additionalDays: action.payload.additionalDays,
+              const payload = action.payload as { fileId: string; additionalDays?: number };
+              await api.post(`/files/${payload.fileId}/approve-time`, {
+                additionalDays: payload.additionalDays,
               });
               toast.success('Time request approved');
             } else if (action.action === 'deny_time') {
-              await api.post(`/files/${action.payload.fileId}/deny-time`);
+              const payload = action.payload as { fileId: string };
+              await api.post(`/files/${payload.fileId}/deny-time`);
               toast.error('Time request denied');
             }
           }}
         >
-          {action.label}
+          {String(action.label ?? '')}
         </Button>
       ));
 
-      toast.info(toastData.title, {
-        description: toastData.message,
+      toast.info(String(toastData.title ?? ''), {
+        description: String(toastData.message ?? ''),
         action: actionButtons?.[0],
         duration: 10000,
       });

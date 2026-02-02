@@ -27,7 +27,8 @@ import { cn } from '@/lib/utils';
 
 type PageItem = { label: string; path: string; icon: React.ElementType; keywords: string[] };
 
-function getPagesForUser(user: Record<string, unknown>): PageItem[] {
+function getPagesForUser(user: Record<string, unknown> | null): PageItem[] {
+  const u = user ?? {};
   const pages: PageItem[] = [
     { label: 'Dashboard', path: '/dashboard', icon: Home, keywords: ['home', 'overview'] },
     { label: 'File Inbox', path: '/files/inbox', icon: Inbox, keywords: ['inbox', 'files', 'pending'] },
@@ -38,7 +39,7 @@ function getPagesForUser(user: Record<string, unknown>): PageItem[] {
     { label: 'Profile', path: '/profile', icon: User, keywords: ['profile', 'account', 'me'] },
     { label: 'Settings', path: '/settings', icon: Settings, keywords: ['settings', 'preferences'] },
   ];
-  if (hasAnyRole(user, ['SUPER_ADMIN', 'DEPT_ADMIN'])) {
+  if (hasAnyRole(u, ['SUPER_ADMIN', 'DEPT_ADMIN'])) {
     pages.push(
       { label: 'Manage Users', path: '/admin/users', icon: Users, keywords: ['users', 'admin'] },
       { label: 'Analytics', path: '/admin/analytics', icon: BarChart, keywords: ['analytics', 'reports'] },
@@ -56,7 +57,7 @@ export default function SearchPage() {
   const [loadingFiles, setLoadingFiles] = useState(false);
   const minQueryLength = 2;
 
-  const pages = getPagesForUser(user);
+  const pages = getPagesForUser(user as Record<string, unknown> | null);
 
   const filterPages = useCallback(
     (q: string): PageItem[] => {
@@ -163,16 +164,16 @@ export default function SearchPage() {
           {!loadingFiles && fileResults.length > 0 && (
             <ul className="space-y-1">
               {fileResults.map((f) => (
-                <li key={f.id}>
+                <li key={String(f.id ?? '')}>
                   <Button
                     variant="ghost"
                     className="w-full justify-start gap-3 h-12 px-3 rounded-lg"
-                    onClick={() => router.push(`/files/${f.id}`)}
+                    onClick={() => router.push(`/files/${String(f.id ?? '')}`)}
                   >
                     <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
                     <span className="flex-1 text-left truncate">
-                      {f.fileNumber ?? f.subject ?? 'File'}
-                      {f.subject && f.fileNumber ? ` · ${f.subject}` : ''}
+                      {String(f.fileNumber ?? f.subject ?? 'File')}
+                      {f.subject && f.fileNumber ? ` · ${String(f.subject)}` : ''}
                     </span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   </Button>

@@ -29,6 +29,17 @@ import {
 import { formatDistanceToNow, format } from 'date-fns';
 import { RecentFiles } from '@/components/recent-files';
 
+interface RecentFile {
+  id: string;
+  status: string;
+  priority?: string;
+  subject?: string;
+  isRedListed?: boolean;
+  fileNumber?: string;
+  department?: { name: string };
+  createdAt?: string;
+}
+
 interface DashboardStats {
   totalFiles: number;
   pendingFiles: number;
@@ -36,7 +47,7 @@ interface DashboardStats {
   approvedFiles: number;
   rejectedFiles: number;
   redListedFiles: number;
-  recentFiles: unknown[];
+  recentFiles: RecentFile[];
 }
 
 export default function DashboardPage() {
@@ -258,7 +269,7 @@ export default function DashboardPage() {
                       onClick={() => router.push(`/files/${file.id}`)}
                     >
                       <div className="flex-shrink-0">
-                        <div className={`h-3 w-3 rounded-full ${getPriorityColor(file.priority)}`} />
+                        <div className={`h-3 w-3 rounded-full ${getPriorityColor(file.priority ?? 'NORMAL')}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">

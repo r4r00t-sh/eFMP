@@ -44,11 +44,22 @@ import {
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
 
+interface TrackFile {
+  id: string;
+  status: string;
+  priority?: string;
+  fileNumber?: string;
+  subject?: string;
+  department?: { name: string; code: string };
+  currentDivision?: { name: string };
+  [key: string]: unknown;
+}
+
 function TrackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [files, setFiles] = useState<unknown[]>([]);
-  const [allFiles, setAllFiles] = useState<unknown[]>([]);
+  const [files, setFiles] = useState<TrackFile[]>([]);
+  const [allFiles, setAllFiles] = useState<TrackFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -314,7 +325,7 @@ function TrackContent() {
               <TableBody>
                 {files.map((file) => {
                   const statusConfig = getStatusConfig(file.status);
-                  const priorityConfig = getPriorityConfig(file.priority);
+                  const priorityConfig = getPriorityConfig(file.priority ?? 'NORMAL');
                   const StatusIcon = statusConfig.icon;
                   return (
                     <TableRow 
@@ -324,10 +335,10 @@ function TrackContent() {
                     >
                       <TableCell className="pl-6">
                         <div className="flex items-center gap-2">
-                          {file.isRedListed && (
+                          {Boolean(file.isRedListed) && (
                             <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
                           )}
-                          <code className="text-sm font-mono font-medium">{file.fileNumber}</code>
+                          <code className="text-sm font-mono font-medium">{file.fileNumber ?? ''}</code>
                         </div>
                       </TableCell>
                       <TableCell>

@@ -35,13 +35,30 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow } from 'date-fns';
 
+interface OpinionFileData {
+  file: {
+    fileNumber: string;
+    subject: string;
+    description?: string;
+    notes?: Array<Record<string, unknown>>;
+    opinionNotes?: Array<Record<string, unknown>>;
+    attachments?: Array<Record<string, unknown>>;
+  };
+  opinionRequest: {
+    specialPermissionGranted: boolean;
+    requestedBy: { name: string };
+    requestedFromDepartment: { code: string };
+    requestReason?: string;
+  };
+}
+
 export default function OpinionDetailPage() {
   const params = useParams();
   const router = useRouter();
   const opinionRequestId = params.id as string;
 
   const [loading, setLoading] = useState(true);
-  const [fileData, setFileData] = useState<unknown>(null);
+  const [fileData, setFileData] = useState<OpinionFileData | null>(null);
   const [opinionNote, setOpinionNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
@@ -208,14 +225,14 @@ export default function OpinionDetailPage() {
             <div className="space-y-4 max-h-[400px] overflow-auto">
               {file.notes && file.notes.length > 0 ? (
                 file.notes.map((note: Record<string, unknown>) => (
-                  <div key={note.id} className="p-3 rounded-lg bg-muted/50">
+                  <div key={String(note.id ?? '')} className="p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">{note.user.name}</span>
+                      <span className="text-sm font-medium">{(note.user as { name: string })?.name}</span>
                       <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(note.createdAt), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(String(note.createdAt ?? '')), { addSuffix: true })}
                       </span>
                     </div>
-                    <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: note.content }} />
+                    <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: String(note.content ?? '') }} />
                   </div>
                 ))
               ) : (
@@ -241,14 +258,14 @@ export default function OpinionDetailPage() {
             <div className="space-y-3 max-h-[200px] overflow-auto">
               {file.opinionNotes && file.opinionNotes.length > 0 ? (
                 file.opinionNotes.map((note: Record<string, unknown>) => (
-                  <div key={note.id} className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                  <div key={String(note.id ?? '')} className="p-3 rounded-lg bg-primary/5 border border-primary/20">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">{note.addedBy.name}</span>
+                      <span className="text-sm font-medium">{(note.addedBy as { name: string })?.name}</span>
                       <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(note.createdAt), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(String(note.createdAt ?? '')), { addSuffix: true })}
                       </span>
                     </div>
-                    <p className="text-sm">{note.content}</p>
+                    <p className="text-sm">{String(note.content ?? '')}</p>
                   </div>
                 ))
               ) : (
@@ -285,20 +302,20 @@ export default function OpinionDetailPage() {
           <CardContent>
             <div className="grid gap-2">
               {file.attachments.map((att: Record<string, unknown>) => (
-                <div key={att.id} className="flex items-center justify-between p-3 rounded-lg border">
+                <div key={String(att.id ?? '')} className="flex items-center justify-between p-3 rounded-lg border">
                   <div className="flex items-center gap-3">
                     <FileText className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">{att.filename}</p>
+                      <p className="font-medium">{String(att.filename ?? '')}</p>
                       <p className="text-xs text-muted-foreground">
-                        {att.mimeType} • {(att.size / 1024).toFixed(2)} KB
+                        {String(att.mimeType ?? '')} • {(Number(att.size ?? 0) / 1024).toFixed(2)} KB
                       </p>
                     </div>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open(`/files/attachments/${att.id}/download`, '_blank')}
+                    onClick={() => window.open(`/files/attachments/${String(att.id ?? '')}/download`, '_blank')}
                   >
                     Download
                   </Button>

@@ -59,12 +59,25 @@ import { BulkActions } from '@/components/bulk-actions';
 import { ExportDialog } from '@/components/export-dialog';
 import { EmptyState } from '@/components/empty-state';
 
+interface InboxFile {
+  id: string;
+  status: string;
+  priority?: string;
+  fileNumber?: string;
+  subject?: string;
+  isRedListed?: boolean;
+  department?: { name: string };
+  currentDivision?: { name: string };
+  createdAt?: string;
+  [key: string]: unknown;
+}
+
 function InboxContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuthStore();
-  const [files, setFiles] = useState<unknown[]>([]);
-  const [allFiles, setAllFiles] = useState<unknown[]>([]);
+  const [files, setFiles] = useState<InboxFile[]>([]);
+  const [allFiles, setAllFiles] = useState<InboxFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || 'all');
@@ -399,7 +412,7 @@ function InboxContent() {
               <TableBody>
                 {files.map((file) => {
                   const statusConfig = getStatusConfig(file.status);
-                  const priorityConfig = getPriorityConfig(file.priority);
+                  const priorityConfig = getPriorityConfig(file.priority ?? 'NORMAL');
                   const StatusIcon = statusConfig.icon;
                   const isSelected = selectedFiles.has(file.id);
                   return (
@@ -418,10 +431,10 @@ function InboxContent() {
                       </TableCell>
                       <TableCell onClick={() => router.push(`/files/${file.id}`)}>
                         <div className="flex items-center gap-3">
-                          {file.isRedListed && (
+                          {Boolean(file.isRedListed) && (
                             <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
                           )}
-                          <code className="text-sm font-mono font-medium">{file.fileNumber}</code>
+                          <code className="text-sm font-mono font-medium">{file.fileNumber ?? ''}</code>
                         </div>
                       </TableCell>
                       <TableCell>

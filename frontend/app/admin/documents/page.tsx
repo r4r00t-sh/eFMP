@@ -81,6 +81,17 @@ interface TemplateCategory {
   count: number;
 }
 
+interface ScanResult {
+  message: string;
+  file?: {
+    fileNumber: string;
+    subject: string;
+    status: string;
+    department: string;
+    assignedTo?: string;
+  };
+}
+
 export default function DocumentManagementPage() {
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('templates');
@@ -110,7 +121,7 @@ export default function DocumentManagementPage() {
   // QR Scanner state
   const [qrData, setQrData] = useState('');
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<unknown>(null);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
 
   useEffect(() => {
     fetchTemplates();
@@ -165,8 +176,9 @@ export default function DocumentManagementPage() {
       fetchTemplates();
       fetchCategories();
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to create template', {
-        description: error.response?.data?.message,
+        description: err.response?.data?.message,
       });
     } finally {
       setCreating(false);
@@ -201,8 +213,9 @@ export default function DocumentManagementPage() {
       setScanResult(response.data);
       toast.success('QR code scanned successfully');
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('QR code not recognized', {
-        description: error.response?.data?.message,
+        description: err.response?.data?.message,
       });
       setScanResult(null);
     } finally {

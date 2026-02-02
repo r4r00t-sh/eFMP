@@ -78,11 +78,20 @@ interface WorkflowItem {
   };
 }
 
+interface WorkflowTemplate {
+  id: string;
+  name: string;
+  code: string;
+  description?: string;
+  category?: string;
+  usageCount?: number;
+}
+
 export default function WorkflowsPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [workflows, setWorkflows] = useState<WorkflowItem[]>([]);
-  const [templates, setTemplates] = useState<unknown[]>([]);
+  const [templates, setTemplates] = useState<WorkflowTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
@@ -140,8 +149,9 @@ export default function WorkflowsPage() {
       // Navigate to workflow builder
       router.push(`/admin/workflows/${response.data.id}/builder`);
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to create workflow', {
-        description: error.response?.data?.message,
+        description: err.response?.data?.message,
       });
     } finally {
       setCreating(false);
@@ -176,8 +186,9 @@ export default function WorkflowsPage() {
       toast.success('Workflow published successfully');
       fetchWorkflows();
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to publish workflow', {
-        description: error.response?.data?.message,
+        description: err.response?.data?.message,
       });
     }
   };
@@ -206,8 +217,9 @@ export default function WorkflowsPage() {
       toast.success('Workflow deleted successfully');
       fetchWorkflows();
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to delete workflow', {
-        description: error.response?.data?.message,
+        description: err.response?.data?.message,
       });
     }
   };

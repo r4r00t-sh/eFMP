@@ -20,11 +20,20 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+interface FileListItem {
+  id: string;
+  status: string;
+  fileNumber?: string;
+  subject?: string;
+  timeRemaining?: number | null;
+  isRedListed?: boolean;
+}
+
 function FilesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const statusFilter = searchParams.get('status');
-  const [files, setFiles] = useState<unknown[]>([]);
+  const [files, setFiles] = useState<FileListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -147,14 +156,14 @@ function FilesContent() {
                         {file.subject}
                       </CardDescription>
                     </div>
-                    <Badge variant={statusConfig.variant} className="ml-2">
+                    <Badge variant={statusConfig.variant as 'default' | 'secondary' | 'destructive' | 'outline' | 'ghost' | 'link'} className="ml-2">
                       {statusConfig.label}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 text-sm">
-                    {file.timeRemaining !== null && (
+                    {file.timeRemaining != null && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Clock className="h-3 w-3" />
                         <span>{file.timeRemaining > 0 ? `${Math.floor(file.timeRemaining / 3600)}h remaining` : 'Overdue'}</span>

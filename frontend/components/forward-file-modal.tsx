@@ -156,8 +156,9 @@ export function ForwardFileModal({
       onOpenChange(false);
       onSuccess?.();
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to forward file', {
-        description: error.response?.data?.message || 'An error occurred',
+        description: err.response?.data?.message || 'An error occurred',
       });
     } finally {
       setLoading(false);

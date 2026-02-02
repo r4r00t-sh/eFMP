@@ -139,8 +139,9 @@ export default function ProfilePage() {
       setEditing(false);
       fetchProfile();
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to update profile', {
-        description: error.response?.data?.message,
+        description: err.response?.data?.message,
       });
     } finally {
       setSaving(false);

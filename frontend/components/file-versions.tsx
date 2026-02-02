@@ -53,6 +53,12 @@ interface Version {
   downloadUrl: string;
 }
 
+interface ComparisonResult {
+  version1: { versionNumber: number; filename: string; size: number };
+  version2: { versionNumber: number; filename: string; size: number };
+  differences: { filenameChanged: boolean; sizeChange: number; mimeTypeChanged: boolean };
+}
+
 interface FileVersionsProps {
   attachmentId: string;
   attachmentName: string;
@@ -69,7 +75,7 @@ export function FileVersions({ attachmentId, attachmentName, canEdit, onVersionC
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [changeDescription, setChangeDescription] = useState('');
   const [compareVersions, setCompareVersions] = useState<{ v1: string; v2: string } | null>(null);
-  const [comparisonResult, setComparisonResult] = useState<unknown>(null);
+  const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -114,8 +120,9 @@ export function FileVersions({ attachmentId, attachmentName, canEdit, onVersionC
       fetchVersions();
       onVersionChange?.();
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to upload new version', {
-        description: error.response?.data?.message,
+        description: err.response?.data?.message,
       });
     } finally {
       setUploading(false);

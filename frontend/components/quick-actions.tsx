@@ -65,20 +65,21 @@ export function QuickActions({
   const [extensionReason, setExtensionReason] = useState('');
   const [extensionDays, setExtensionDays] = useState('1');
 
-  const performAction = async (action: string, data?: unknown) => {
+  const performAction = async (action: string, data?: Record<string, unknown>) => {
     setLoading(action);
     try {
       await api.post(`/files/${fileId}/action`, {
         action,
-        remarks: data?.remarks || remarks,
+        remarks: (data?.remarks as string | undefined) || remarks,
         ...data,
       });
       toast.success(`File ${action} successfully`);
       onActionComplete();
       resetDialogs();
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error(`Failed to ${action} file`, {
-        description: error.response?.data?.message,
+        description: err.response?.data?.message,
       });
     } finally {
       setLoading(null);
@@ -112,8 +113,9 @@ export function QuickActions({
       });
       resetDialogs();
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to request extension', {
-        description: error.response?.data?.message,
+        description: err.response?.data?.message,
       });
     } finally {
       setLoading(null);

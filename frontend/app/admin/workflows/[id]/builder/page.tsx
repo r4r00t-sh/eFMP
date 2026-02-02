@@ -52,17 +52,52 @@ import api from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+interface WorkflowNode {
+  id: string;
+  nodeType?: string;
+  label?: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
+interface WorkflowEdge {
+  id?: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  label?: string;
+  [key: string]: unknown;
+}
+
+interface Workflow {
+  name: string;
+  code: string;
+  version: number;
+  isActive: boolean;
+  isDraft: boolean;
+  description?: string;
+  nodes?: WorkflowNode[];
+  edges?: WorkflowEdge[];
+  createdBy?: { name: string };
+  publishedBy?: { name: string };
+}
+
+interface WorkflowValidation {
+  valid: boolean;
+  errors?: string[];
+  warnings?: string[];
+}
+
 export default function WorkflowBuilderPage() {
   const params = useParams();
   const router = useRouter();
   const workflowId = params.id as string;
 
-  const [workflow, setWorkflow] = useState<unknown>(null);
+  const [workflow, setWorkflow] = useState<Workflow | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddNodeDialog, setShowAddNodeDialog] = useState(false);
   const [showAddEdgeDialog, setShowAddEdgeDialog] = useState(false);
-  const [selectedNode, setSelectedNode] = useState<unknown>(null);
-  const [validation, setValidation] = useState<unknown>(null);
+  const [selectedNode, setSelectedNode] = useState<WorkflowNode | null>(null);
+  const [validation, setValidation] = useState<WorkflowValidation | null>(null);
 
   const [nodeForm, setNodeForm] = useState({
     nodeId: '',
@@ -123,8 +158,9 @@ export default function WorkflowBuilderPage() {
       toast.success('Workflow published successfully');
       fetchWorkflow();
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to publish workflow', {
-        description: error.response?.data?.message,
+        description: err.response?.data?.message,
       });
     }
   };
@@ -281,14 +317,14 @@ export default function WorkflowBuilderPage() {
                 )}>
                   {validation.valid ? 'Workflow is valid' : 'Workflow has errors'}
                 </p>
-                {validation.errors?.length > 0 && (
+                {(validation.errors?.length ?? 0) > 0 && validation.errors && (
                   <ul className="text-sm text-red-700 dark:text-red-300 mt-2 list-disc list-inside">
                     {validation.errors.map((err: string, i: number) => (
                       <li key={i}>{err}</li>
                     ))}
                   </ul>
                 )}
-                {validation.warnings?.length > 0 && (
+                {(validation.warnings?.length ?? 0) > 0 && validation.warnings && (
                   <ul className="text-sm text-amber-700 dark:text-amber-300 mt-2 list-disc list-inside">
                     {validation.warnings.map((warn: string, i: number) => (
                       <li key={i}>{warn}</li>
@@ -319,8 +355,8 @@ export default function WorkflowBuilderPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {workflow.nodes?.map((node: Record<string, unknown>) => {
-              const NodeIcon = getNodeIcon(node.nodeType);
+            {workflow.nodes?.map((node: WorkflowNode) => {
+              const NodeIcon = getNodeIcon((node.nodeType as string) ?? 'task');
               return (
                 <Card key={node.id}>
                   <CardContent className="p-4">
@@ -342,9 +378,9 @@ export default function WorkflowBuilderPage() {
                           )} />
                         </div>
                         <div>
-                          <p className="font-medium">{node.label}</p>
+                          <p className="font-medium">{node.label != null ? String(node.label) : ''}</p>
                           <Badge variant="outline" className="text-xs capitalize mt-1">
-                            {node.nodeType}
+                            {node.nodeType != null ? String(node.nodeType) : ''}
                           </Badge>
                         </div>
                       </div>
@@ -358,22 +394,22 @@ export default function WorkflowBuilderPage() {
                       </Button>
                     </div>
 
-                    {node.description && (
-                      <p className="text-xs text-muted-foreground mb-2">{node.description}</p>
+                    {node.description != null && (
+                      <p className="text-xs text-muted-foreground mb-2">{String(node.description)}</p>
                     )}
 
-                    {node.assigneeType && (
+                    {node.assigneeType != null && (
                       <div className="text-xs">
                         <span className="text-muted-foreground">Assignee: </span>
-                        <span className="font-medium capitalize">{node.assigneeType}</span>
-                        {node.assigneeValue && ` (${node.assigneeValue})`}
+                        <span className="font-medium capitalize">{String(node.assigneeType)}</span>
+                        {node.assigneeValue != null && ` (${String(node.assigneeValue)})`}
                       </div>
                     )}
 
-                    {node.timeLimit && (
+                    {node.timeLimit != null && (
                       <div className="text-xs mt-1">
                         <span className="text-muted-foreground">Time Limit: </span>
-                        <span className="font-medium">{Math.floor(node.timeLimit / 3600)}h</span>
+                        <span className="font-medium">{Math.floor(Number(node.timeLimit) / 3600)}h</span>
                       </div>
                     )}
                   </CardContent>
@@ -395,28 +431,28 @@ export default function WorkflowBuilderPage() {
           <Card>
             <CardContent className="p-0">
               <div className="divide-y">
-                {workflow.edges?.map((edge: Record<string, unknown>) => {
-                  const sourceNode = workflow.nodes.find((n: Record<string, unknown>) => n.id === edge.sourceNodeId);
-                  const targetNode = workflow.nodes.find((n: Record<string, unknown>) => n.id === edge.targetNodeId);
+                {workflow.edges?.map((edge: WorkflowEdge) => {
+                  const sourceNode = workflow.nodes?.find((n: WorkflowNode) => n.id === edge.sourceNodeId);
+                  const targetNode = workflow.nodes?.find((n: WorkflowNode) => n.id === edge.targetNodeId);
                   
                   return (
-                    <div key={edge.id} className="p-4 flex items-center justify-between hover:bg-muted/50">
+                    <div key={String(edge.id ?? '')} className="p-4 flex items-center justify-between hover:bg-muted/50">
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline">{sourceNode?.label || 'Unknown'}</Badge>
+                          <Badge variant="outline">{sourceNode?.label != null ? String(sourceNode.label) : 'Unknown'}</Badge>
                           <span className="text-muted-foreground">→</span>
-                          <Badge variant="outline">{targetNode?.label || 'Unknown'}</Badge>
+                          <Badge variant="outline">{targetNode?.label != null ? String(targetNode.label) : 'Unknown'}</Badge>
                         </div>
-                        {edge.label && (
+                        {edge.label != null && (
                           <span className="text-sm text-muted-foreground">
-                            {'\u0022'}{edge.label}{'\u0022'}
+                            {'\u0022'}{String(edge.label)}{'\u0022'}
                           </span>
                         )}
                       </div>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => deleteEdge(edge.id)}
+                        onClick={() => deleteEdge(edge.id as string)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -585,9 +621,9 @@ export default function WorkflowBuilderPage() {
                   <SelectValue placeholder="Select source node" />
                 </SelectTrigger>
                 <SelectContent>
-                  {workflow.nodes?.map((node: Record<string, unknown>) => (
+                  {workflow.nodes?.map((node: WorkflowNode) => (
                     <SelectItem key={node.id} value={node.id}>
-                      {node.label}
+                      {node.label != null ? String(node.label) : node.id}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -604,9 +640,9 @@ export default function WorkflowBuilderPage() {
                   <SelectValue placeholder="Select target node" />
                 </SelectTrigger>
                 <SelectContent>
-                  {workflow.nodes?.map((node: Record<string, unknown>) => (
+                  {workflow.nodes?.map((node: WorkflowNode) => (
                     <SelectItem key={node.id} value={node.id}>
-                      {node.label}
+                      {node.label != null ? String(node.label) : node.id}
                     </SelectItem>
                   ))}
                 </SelectContent>

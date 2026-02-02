@@ -128,8 +128,9 @@ export default function FileTraceroutePage() {
       const response = await api.get(`/files/${fileId}`);
       setFile(response.data);
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to load file', {
-        description: error.response?.data?.message || 'File not found',
+        description: err.response?.data?.message || 'File not found',
       });
       router.push('/files/track');
     } finally {

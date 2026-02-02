@@ -72,15 +72,28 @@ interface Desk {
   }>;
 }
 
+interface Department {
+  id: string;
+  code: string;
+  name: string;
+}
+
+interface WorkloadSummary {
+  totalDesks: number;
+  activeDesks: number;
+  totalFiles: number;
+  overallUtilization: number;
+}
+
 export default function DesksPage() {
   const [desks, setDesks] = useState<Desk[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedDesk, setSelectedDesk] = useState<Desk | null>(null);
-  const [departments, setDepartments] = useState<unknown[]>([]);
-  const [divisions, setDivisions] = useState<unknown[]>([]);
-  const [workloadSummary, setWorkloadSummary] = useState<unknown>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [divisions, setDivisions] = useState<Department[]>([]);
+  const [workloadSummary, setWorkloadSummary] = useState<WorkloadSummary | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({

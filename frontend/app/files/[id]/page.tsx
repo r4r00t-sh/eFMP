@@ -70,6 +70,27 @@ interface Attachment {
   createdAt: string;
 }
 
+interface FileNote {
+  id: string;
+  content: string;
+  createdAt: string;
+  user: { id: string; name: string };
+}
+
+interface RoutingEntry {
+  id: string;
+  action: string;
+  actionString?: string;
+  remarks?: string;
+  createdAt: string;
+  fromUserId?: string;
+  toUserId?: string;
+  toDivisionId?: string;
+  fromUser?: { id: string; name: string };
+  toUser?: { id: string; name: string };
+  toDivision?: { id: string; name: string };
+}
+
 interface FileDetails {
   id: string;
   fileNumber: string;
@@ -93,8 +114,8 @@ interface FileDetails {
   assignedTo?: { id: string; name: string; email?: string };
   department: { id: string; name: string; code: string };
   currentDivision?: { id: string; name: string };
-  notes: unknown[];
-  routingHistory: unknown[];
+  notes: FileNote[];
+  routingHistory: RoutingEntry[];
   attachments?: Attachment[];
 }
 
@@ -161,8 +182,9 @@ function AttachmentsSection({
       toast.success(`${files.length} file(s) uploaded successfully`);
       onUpdate();
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to upload files', {
-        description: error.response?.data?.message,
+        description: err.response?.data?.message,
       });
     } finally {
       setUploading(false);
@@ -361,8 +383,9 @@ function FileDetailContent() {
       const response = await api.get(`/files/${fileId}`);
       setFile(response.data);
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to load file', {
-        description: error.response?.data?.message || 'File not found',
+        description: err.response?.data?.message || 'File not found',
       });
       router.push('/files/inbox');
     } finally {

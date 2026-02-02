@@ -280,8 +280,9 @@ export default function NewFilePage() {
 
       router.push(`/files/${response.data.id}`);
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to create file', {
-        description: error.response?.data?.message || 'An error occurred',
+        description: err.response?.data?.message || 'An error occurred',
       });
     } finally {
       setLoading(false);

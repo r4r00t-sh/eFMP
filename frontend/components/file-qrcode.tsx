@@ -82,8 +82,9 @@ export function FileQRCode({ fileId, fileNumber }: FileQRCodeProps) {
       
       toast.success('QR code generated successfully');
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to generate QR code', {
-        description: error.response?.data?.message,
+        description: err.response?.data?.message,
       });
     } finally {
       setGenerating(false);

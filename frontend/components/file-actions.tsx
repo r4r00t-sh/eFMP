@@ -151,8 +151,9 @@ export function FileActions({
       setAdditionalDays(1);
       onActionComplete?.();
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Action failed', {
-        description: error.response?.data?.message || 'An error occurred',
+        description: err.response?.data?.message || 'An error occurred',
       });
     } finally {
       setLoading(false);

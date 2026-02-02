@@ -173,12 +173,12 @@ export function CommandPalette() {
             <CommandGroup heading="Files">
               {fileResults.map((f) => (
                 <CommandItem
-                  key={f.id}
-                  onSelect={() => navigate(`/files/${f.id}`)}
+                  key={String(f.id ?? '')}
+                  onSelect={() => navigate(`/files/${String(f.id ?? '')}`)}
                   className="cursor-pointer"
                 >
                   <FileText className="mr-2 h-4 w-4" />
-                  <span className="truncate">{f.fileNumber ?? f.subject ?? 'File'}{f.subject && f.fileNumber ? ` · ${f.subject}` : ''}</span>
+                  <span className="truncate">{String(f.fileNumber ?? f.subject ?? 'File')}{f.subject && f.fileNumber ? ` · ${String(f.subject)}` : ''}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

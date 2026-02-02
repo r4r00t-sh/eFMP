@@ -102,7 +102,8 @@ export default function ChatPage() {
       setDmModal(false);
       router.push(`/chat/${res.data.id}`);
     } catch (e: unknown) {
-      alert(e.response?.data?.message || 'Failed to start conversation');
+      const err = e as { response?: { data?: { message?: string } } };
+      alert(err.response?.data?.message || 'Failed to start conversation');
     }
   };
 
@@ -137,7 +138,8 @@ export default function ChatPage() {
       setConversations((prev) => [res.data, ...prev]);
       router.push(`/chat/${res.data.id}`);
     } catch (e: unknown) {
-      alert(e.response?.data?.message || 'Failed to create group');
+      const err = e as { response?: { data?: { message?: string } } };
+      alert(err.response?.data?.message || 'Failed to create group');
     }
   };
 

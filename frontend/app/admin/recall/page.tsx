@@ -50,8 +50,9 @@ export default function RecallProtocolPage() {
       setOpen(false);
       setFileId('');
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to recall file', {
-        description: error.response?.data?.message || 'The file may not exist or cannot be recalled.',
+        description: err.response?.data?.message || 'The file may not exist or cannot be recalled.',
       });
     } finally {
       setLoading(false);

@@ -76,8 +76,9 @@ export function RecallModal({
       onRecallComplete();
       onOpenChange(false);
     } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error('Failed to recall file', {
-        description: error.response?.data?.message,
+        description: err.response?.data?.message,
       });
     } finally {
       setLoading(false);
@@ -133,7 +134,7 @@ export function RecallModal({
           {/* Destination Selection */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">Where do you want to move this file?</Label>
-            <RadioGroup value={destination} onValueChange={(v: string) => setDestination(v)}>
+            <RadioGroup value={destination} onValueChange={(v) => setDestination(v as 'next' | 'holding' | 'originator')}>
               <div
                 className={cn(
                   "flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all",
