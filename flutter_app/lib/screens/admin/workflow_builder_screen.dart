@@ -202,7 +202,7 @@ class _WorkflowBuilderScreenState extends State<WorkflowBuilderScreen> {
                         children: [
                           CircleAvatar(
                             radius: 20,
-                            backgroundColor: _nodeColor(context, nodeType).withValues(alpha: 0.2),
+                            backgroundColor: _nodeColor(context, nodeType).withOpacity( 0.2),
                             child: Icon(_nodeIcon(nodeType), color: _nodeColor(context, nodeType), size: 22),
                           ),
                           const SizedBox(width: 12),

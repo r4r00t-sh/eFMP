@@ -207,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
           end: Alignment.bottomRight,
           colors: [
             theme.colorScheme.primary,
-            theme.colorScheme.primary.withValues(alpha: 0.95),
+            theme.colorScheme.primary.withOpacity( 0.95),
           ],
         ),
       ),
@@ -220,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white.withOpacity( 0.2),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Center(
@@ -245,12 +245,12 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 16),
           Text(
             'Manage, track, and process files efficiently with our enterprise-grade e-filing solution designed for government organizations.',
-            style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white.withValues(alpha: 0.9)),
+            style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white.withOpacity( 0.9)),
           ),
           const Spacer(),
           Text(
             '© 2026 EFMP. All rights reserved.',
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.6)),
+            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withOpacity( 0.6)),
           ),
         ],
       ),

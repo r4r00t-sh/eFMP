@@ -176,7 +176,7 @@ class _TrackFileDetailScreenState extends State<TrackFileDetailScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.red.withValues(alpha: 0.2),
+                        color: AppColors.red.withOpacity( 0.2),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text('RED LISTED', style: theme.textTheme.labelSmall?.copyWith(color: AppColors.red, fontWeight: FontWeight.bold)),
@@ -257,7 +257,7 @@ class _TrackFileDetailScreenState extends State<TrackFileDetailScreen> {
                                       decoration: BoxDecoration(
                                         color: isLast ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest,
                                         shape: BoxShape.circle,
-                                        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.5), width: 2),
+                                        border: Border.all(color: theme.colorScheme.primary.withOpacity( 0.5), width: 2),
                                       ),
                                       alignment: Alignment.center,
                                       child: Icon(
@@ -271,7 +271,7 @@ class _TrackFileDetailScreenState extends State<TrackFileDetailScreen> {
                                         width: 2,
                                         margin: const EdgeInsets.symmetric(vertical: 4),
                                         constraints: const BoxConstraints(minHeight: 24),
-                                        color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                                        color: theme.colorScheme.primary.withOpacity( 0.4),
                                       ),
                                   ],
                                 ),
@@ -290,7 +290,7 @@ class _TrackFileDetailScreenState extends State<TrackFileDetailScreen> {
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                 decoration: BoxDecoration(
-                                                  color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                                                  color: theme.colorScheme.primary.withOpacity( 0.2),
                                                   borderRadius: BorderRadius.circular(4),
                                                 ),
                                                 child: Text('Current', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),

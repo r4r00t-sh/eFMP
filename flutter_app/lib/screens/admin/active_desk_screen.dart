@@ -193,7 +193,7 @@ class _ActiveDeskScreenState extends State<ActiveDeskScreen> {
                       subtitle: Text(u['username']?.toString() ?? ''),
                       trailing: Chip(
                         label: Text(statusLabel),
-                        backgroundColor: isActive ? AppColors.green.withValues(alpha: 0.2) : null,
+                        backgroundColor: isActive ? AppColors.green.withOpacity( 0.2) : null,
                       ),
                     );
                   },

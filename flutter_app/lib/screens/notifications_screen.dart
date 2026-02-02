@@ -99,7 +99,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.notifications_none, size: 64, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+                      Icon(Icons.notifications_none, size: 64, color: theme.colorScheme.onSurfaceVariant.withOpacity( 0.5)),
                       const SizedBox(height: 16),
                       Text('No notifications', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                     ],
@@ -120,7 +120,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       final fileId = n['fileId']?.toString();
                       final createdAt = n['createdAt']?.toString();
                       return Material(
-                        color: isRead ? null : theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                        color: isRead ? null : theme.colorScheme.primaryContainer.withOpacity( 0.3),
                         child: ListTile(
                           leading: _iconForType(type, theme),
                           title: Text(title, style: TextStyle(fontWeight: isRead ? FontWeight.normal : FontWeight.w600)),

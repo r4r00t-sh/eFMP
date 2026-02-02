@@ -133,7 +133,7 @@ class _FileTimerWidgetState extends State<FileTimerWidget> {
 
     if (widget.variant == FileTimerVariant.clock) {
       return Card(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity( 0.1),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
@@ -227,9 +227,9 @@ class PriorityCategoryBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: color.withOpacity( 0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
+        border: Border.all(color: color.withOpacity( 0.5)),
       ),
       child: Text(category, style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600, color: color)),
     );

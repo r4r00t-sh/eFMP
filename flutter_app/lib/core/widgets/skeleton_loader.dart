@@ -45,7 +45,7 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = theme.colorScheme.onSurface.withValues(alpha: 0.08);
+    final color = theme.colorScheme.onSurface.withOpacity( 0.08);
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
@@ -54,7 +54,7 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
           height: widget.height,
           decoration: BoxDecoration(
             borderRadius: widget.borderRadius ?? BorderRadius.circular(AppSpacing.xs),
-            color: color.withValues(alpha: _animation.value),
+            color: color.withOpacity( _animation.value),
           ),
         );
       },

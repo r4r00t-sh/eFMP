@@ -43,7 +43,7 @@ class _OnboardingOverlayState extends State<OnboardingOverlay> {
       children: [
         widget.child,
         Material(
-          color: theme.colorScheme.surface.withValues(alpha: 0.98),
+          color: theme.colorScheme.surface.withOpacity( 0.98),
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(24),

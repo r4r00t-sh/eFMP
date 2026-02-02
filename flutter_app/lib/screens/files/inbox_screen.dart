@@ -304,7 +304,7 @@ class _InboxScreenState extends State<InboxScreen> {
                     title: Row(
                       children: [
                         Expanded(child: Text(f.subject, overflow: TextOverflow.ellipsis)),
-                        if (f.isRedListed) Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: AppColors.red.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)), child: Text('RED', style: theme.textTheme.labelSmall?.copyWith(color: AppColors.red))),
+                        if (f.isRedListed) Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: AppColors.red.withOpacity( 0.2), borderRadius: BorderRadius.circular(4)), child: Text('RED', style: theme.textTheme.labelSmall?.copyWith(color: AppColors.red))),
                       ],
                     ),
                     subtitle: Text('${f.fileNumber} • ${f.departmentName} • ${f.status}'),
@@ -367,7 +367,7 @@ class _FloatingBulkActionBar extends StatelessWidget {
       bottom: 24,
       child: Material(
         elevation: 8,
-        shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.25),
+        shadowColor: theme.colorScheme.shadow.withOpacity( 0.25),
         borderRadius: BorderRadius.circular(16),
         child: Container(
           width: double.infinity,
@@ -375,7 +375,7 @@ class _FloatingBulkActionBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+            border: Border.all(color: theme.colorScheme.outline.withOpacity( 0.3)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

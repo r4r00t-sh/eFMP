@@ -375,7 +375,7 @@ class _FileDetailScreenState extends State<FileDetailScreen> with SingleTickerPr
               spacing: 8,
               runSpacing: 8,
               children: [
-                if (f.isRedListed) Chip(avatar: const Icon(Icons.warning_amber, size: 18, color: AppColors.red), label: const Text('Red Listed'), backgroundColor: AppColors.red.withValues(alpha: 0.15)),
+                if (f.isRedListed) Chip(avatar: const Icon(Icons.warning_amber, size: 18, color: AppColors.red), label: const Text('Red Listed'), backgroundColor: AppColors.red.withOpacity( 0.15)),
                 if (f.isOnHold) Chip(avatar: const Icon(Icons.pause_circle, size: 18), label: const Text('On Hold')),
                 Chip(label: Text(statusLabel)),
                 Chip(label: Text(f.priority)),
@@ -449,7 +449,7 @@ class _FileDetailScreenState extends State<FileDetailScreen> with SingleTickerPr
             ),
             if (!canEdit)
               Card(
-                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                color: theme.colorScheme.primaryContainer.withOpacity( 0.3),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Row(
@@ -468,7 +468,7 @@ class _FileDetailScreenState extends State<FileDetailScreen> with SingleTickerPr
               ),
             if (f.isOnHold && f.holdReason != null && f.holdReason!.isNotEmpty)
               Card(
-                color: AppColors.amber.withValues(alpha: 0.15),
+                color: AppColors.amber.withOpacity( 0.15),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Row(

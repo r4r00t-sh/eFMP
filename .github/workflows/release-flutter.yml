@@ -18,7 +18,8 @@ on:
         default: '1.0.0'
 
 env:
-  FLUTTER_VERSION: '3.24.x'
+  # 3.32+ for CardThemeData; 3.24 had CardTheme only
+  FLUTTER_VERSION: '3.32.x'
   FLUTTER_CHANNEL: stable
 
 jobs:

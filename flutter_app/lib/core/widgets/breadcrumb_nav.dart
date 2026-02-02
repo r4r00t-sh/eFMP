@@ -79,7 +79,7 @@ class BreadcrumbNav extends StatelessWidget {
             if (i.isOdd) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
+                child: Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.onSurfaceVariant.withOpacity( 0.7)),
               );
             }
             final idx = i ~/ 2;

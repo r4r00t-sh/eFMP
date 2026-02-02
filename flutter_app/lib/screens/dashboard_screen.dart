@@ -216,7 +216,7 @@ class _StatCard extends StatelessWidget {
                   Text(title, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: color.withOpacity( 0.15), borderRadius: BorderRadius.circular(12)),
                     child: Icon(icon, color: color, size: 24),
                   ),
                 ],
@@ -266,7 +266,7 @@ class _RecentFileTile extends StatelessWidget {
       title: Row(
         children: [
           Expanded(child: Text(file.subject, overflow: TextOverflow.ellipsis)),
-          if (file.isRedListed) Container(margin: const EdgeInsets.only(left: 8), padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: AppColors.red.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)), child: Text('RED', style: theme.textTheme.labelSmall?.copyWith(color: AppColors.red))),
+          if (file.isRedListed) Container(margin: const EdgeInsets.only(left: 8), padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: AppColors.red.withOpacity( 0.2), borderRadius: BorderRadius.circular(4)), child: Text('RED', style: theme.textTheme.labelSmall?.copyWith(color: AppColors.red))),
         ],
       ),
       subtitle: Text('${file.fileNumber} • ${file.departmentName}${created.isNotEmpty ? ' • $created' : ''}', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis),
