@@ -137,7 +137,8 @@ export default function DesksPage() {
       fetchDesks();
       fetchWorkloadSummary();
     } catch (error: unknown) {
-      toast.error(error.response?.data?.message || 'Failed to create desk');
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to create desk');
     }
   };
 
@@ -168,7 +169,8 @@ export default function DesksPage() {
       fetchDesks();
       fetchWorkloadSummary();
     } catch (error: unknown) {
-      toast.error(error.response?.data?.message || 'Failed to delete desk');
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to delete desk');
     }
   };
 

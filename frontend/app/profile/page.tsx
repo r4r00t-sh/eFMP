@@ -172,7 +172,8 @@ export default function ProfilePage() {
       toast.success('Avatar updated successfully');
       e.target.value = '';
     } catch (error: unknown) {
-      toast.error(error.response?.data?.message || 'Failed to upload avatar');
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to upload avatar');
     } finally {
       setAvatarLoading(false);
     }

@@ -94,7 +94,8 @@ export default function SettingsPage() {
       toast.success('Avatar updated successfully');
       e.target.value = '';
     } catch (error: unknown) {
-      toast.error(error.response?.data?.message || 'Failed to upload avatar');
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to upload avatar');
     } finally {
       setAvatarLoading(false);
     }
@@ -111,7 +112,8 @@ export default function SettingsPage() {
         setAuth({ ...user, name, email }, localStorage.getItem('token') || '');
       }
     } catch (error: unknown) {
-      toast.error(error.response?.data?.message || 'Failed to update profile');
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -142,7 +144,8 @@ export default function SettingsPage() {
       setNewPassword('');
       setConfirmPassword('');
     } catch (error: unknown) {
-      toast.error(error.response?.data?.message || 'Failed to change password');
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to change password');
     } finally {
       setPasswordLoading(false);
     }

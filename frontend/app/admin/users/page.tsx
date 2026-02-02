@@ -185,7 +185,8 @@ export default function UsersPage() {
       resetForm();
       fetchUsers();
     } catch (error: unknown) {
-      toast.error(error.response?.data?.message || 'Failed to create user');
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to create user');
     } finally {
       setFormLoading(false);
     }
@@ -207,7 +208,8 @@ export default function UsersPage() {
       setIsEditOpen(false);
       fetchUsers();
     } catch (error: unknown) {
-      toast.error(error.response?.data?.message || 'Failed to update user');
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to update user');
     } finally {
       setFormLoading(false);
     }
@@ -272,7 +274,8 @@ export default function UsersPage() {
       setDeleteDialogOpen(false);
       fetchUsers();
     } catch (error: unknown) {
-      toast.error(error.response?.data?.message || 'Failed to deactivate users');
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to deactivate users');
     } finally {
       setBulkLoading(false);
     }
