@@ -1,6 +1,6 @@
 # EFMP – E-Filing Management Platform (Flutter)
 
-Cross-platform Flutter app that mirrors the EFiling-System web app: same features, UI, and **Funnel Display** font.
+Cross-platform Flutter app that mirrors the EFiling-System web app: same features and UI (Roboto font, Dart 3.5 compatible).
 
 ## Features (aligned with web)
 
@@ -14,7 +14,7 @@ Cross-platform Flutter app that mirrors the EFiling-System web app: same feature
 
 ## Theme
 
-- **Font**: Funnel Display (Google Fonts), same as web.
+- **Font**: Roboto (Google Fonts), compatible with Dart 3.5+.
 - **Colors**: Same as `frontend/app/globals.css` (light/dark, primary, muted, destructive, etc.).
 - **Radius**: 8px (0.5rem).
 
@@ -50,7 +50,7 @@ flutter run
 
 ## Project layout
 
-- `lib/core/theme/` – App theme, Funnel Display, colors from web
+- `lib/core/theme/` – App theme, Roboto, colors from web
 - `lib/core/api/` – API client (Dio + Bearer token), config
 - `lib/core/auth/` – AuthProvider (user + token, 401 → logout)
 - `lib/core/router/` – go_router (login vs shell, role-based nav in shell)

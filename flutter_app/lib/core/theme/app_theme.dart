@@ -3,8 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:efiling_app/core/theme/app_colors.dart';
 import 'package:efiling_app/core/theme/app_spacing.dart';
 
-/// Theme matching the web app: same colors, radius (0.5rem = 8), and Funnel Display font.
-/// Uses [google_fonts]. Apply to a single Text: Text('Hi', style: GoogleFonts.funnelDisplay()).
+/// Theme matching the web app: same colors, radius (0.5rem = 8). Uses Roboto (google_fonts 6.3, Dart 3.5 compatible).
 class AppTheme {
   AppTheme._();
 
@@ -12,14 +11,14 @@ class AppTheme {
 
   static TextTheme _textTheme(bool isDark) {
     final base = isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme;
-    return GoogleFonts.funnelDisplayTextTheme(base);
+    return GoogleFonts.robotoTextTheme(base);
   }
 
   static ThemeData get light {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      fontFamily: 'Funnel Display',
+      fontFamily: 'Roboto',
       textTheme: _textTheme(false),
       colorScheme: const ColorScheme.light(
         surface: AppColors.lightBackground,
@@ -74,7 +73,7 @@ class AppTheme {
         foregroundColor: AppColors.lightForeground,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.funnelDisplay(
+        titleTextStyle: GoogleFonts.roboto(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.lightForeground,
@@ -98,7 +97,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      fontFamily: 'Funnel Display',
+      fontFamily: 'Roboto',
       textTheme: _textTheme(true),
       colorScheme: const ColorScheme.dark(
         surface: AppColors.darkBackground,
@@ -153,7 +152,7 @@ class AppTheme {
         foregroundColor: AppColors.darkForeground,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.funnelDisplay(
+        titleTextStyle: GoogleFonts.roboto(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.darkForeground,

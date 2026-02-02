@@ -18,8 +18,7 @@ on:
         default: '1.0.0'
 
 env:
-  # google_fonts ^8.0.0 requires Dart 3.9+; Flutter 3.35+ includes Dart 3.9
-  FLUTTER_VERSION: '3.35.x'
+  FLUTTER_VERSION: '3.24.x'
   FLUTTER_CHANNEL: stable
 
 jobs:
