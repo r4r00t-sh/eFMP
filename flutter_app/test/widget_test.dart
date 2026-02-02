@@ -1,15 +1,38 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:efiling_app/main.dart' show EfilingApp;
 
 void main() {
-  testWidgets('App type exists', (WidgetTester tester) async {
+  testWidgets('EfilingApp type exists', (WidgetTester tester) async {
     expect(EfilingApp, isNotNull);
+  });
+
+  testWidgets('MaterialApp builds and displays title', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        title: 'EFMP',
+        home: Scaffold(
+          body: Center(child: Text('EFMP')),
+        ),
+      ),
+    );
+    expect(find.text('EFMP'), findsOneWidget);
+  });
+
+  testWidgets('Find widget by key', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ListView(
+            children: [
+              const ListTile(title: Text('Inbox')),
+              ListTile(key: const Key('files'), title: const Text('Files')),
+            ],
+          ),
+        ),
+      ),
+    );
+    expect(find.byKey(const Key('files')), findsOneWidget);
+    expect(find.text('Inbox'), findsOneWidget);
   });
 }

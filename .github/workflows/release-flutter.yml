@@ -99,10 +99,19 @@ jobs:
         working-directory: flutter_app
         run: flutter pub get
 
+      # Check for signing secrets (cannot use secrets.* in 'if' - use step output)
+      - name: Check for signing secrets
+        id: check_signing
+        run: |
+          echo "has_cert=$([ -n \"$CERT_B64\" ] && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "has_profile=$([ -n \"$PROFILE_B64\" ] && echo true || echo false)" >> $GITHUB_OUTPUT
+        env:
+          CERT_B64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          PROFILE_B64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+
       # Optional: Import code signing (add repo secrets for App Store / Ad Hoc IPA)
-      # Required secrets: BUILD_CERTIFICATE_BASE64, P12_PASSWORD, BUILD_PROVISION_PROFILE_BASE64, KEYCHAIN_PASSWORD
       - name: Import code signing
-        if: ${{ secrets.BUILD_CERTIFICATE_BASE64 != '' }}
+        if: steps.check_signing.outputs.has_cert == 'true'
         uses: apple-actions/import-codesign-certs@v2
         with:
           p12-file-base64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
@@ -110,7 +119,7 @@ jobs:
           keychain-password: ${{ secrets.KEYCHAIN_PASSWORD }}
 
       - name: Install provisioning profile
-        if: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 != '' }}
+        if: steps.check_signing.outputs.has_profile == 'true'
         run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
@@ -118,9 +127,11 @@ jobs:
 
       - name: Build IPA
         working-directory: flutter_app
+        env:
+          HAS_SIGNING: ${{ steps.check_signing.outputs.has_cert }}
         run: |
           mkdir -p build/ios/release
-          if [ -n "${{ secrets.BUILD_CERTIFICATE_BASE64 }}" ]; then
+          if [ "$HAS_SIGNING" = "true" ]; then
             flutter build ipa --release
             IPA=$(find build/ios/ipa -name "*.ipa" -type f | head -1)
             [ -n "$IPA" ] && cp "$IPA" build/ios/release/efiling_app.ipa
