@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:efiling_app/core/auth/auth_provider.dart';
 import 'package:efiling_app/core/theme/app_colors.dart';
+import 'package:efiling_app/core/api/api_config.dart';
+import 'package:efiling_app/core/api/api_client.dart';
 
 /// Login screen matching web: left branding panel, right form, test accounts.
 class LoginScreen extends StatefulWidget {
@@ -13,10 +15,12 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _apiUrlController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _loading = false;
   String? _error;
+  bool _showApiUrl = false;
 
   static const _testAccounts = [
     _TestAccount(role: 'Super Admin', username: 'admin', password: 'admin123', name: 'Super Administrator', dept: 'All Departments', color: AppColors.red),
@@ -28,10 +32,30 @@ class _LoginScreenState extends State<LoginScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Load current API URL
+    _apiUrlController.text = ApiConfig.baseUrl;
+  }
+
+  @override
   void dispose() {
+    _apiUrlController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveApiUrl() async {
+    final url = _apiUrlController.text.trim();
+    if (url.isEmpty) return;
+    await ApiConfig.setBaseUrl(url);
+    ApiClient().reset();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('API URL saved. New requests will use it.')),
+      );
+    }
   }
 
   Future<void> _submit() async {
@@ -93,6 +117,45 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                       ),
                       const SizedBox(height: 24),
+                      // API URL field (collapsible)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton.icon(
+                              onPressed: () {
+                                setState(() => _showApiUrl = !_showApiUrl);
+                              },
+                              icon: Icon(_showApiUrl ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
+                              label: Text(_showApiUrl ? 'Hide API URL' : 'Configure API URL'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_showApiUrl) ...[
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _apiUrlController,
+                          decoration: InputDecoration(
+                            labelText: 'API Base URL',
+                            hintText: 'http://192.168.1.33:3001',
+                            prefixIcon: const Icon(Icons.link),
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.save),
+                              tooltip: 'Save API URL',
+                              onPressed: _saveApiUrl,
+                            ),
+                            helperText: 'Change this when your IP address changes',
+                          ),
+                          keyboardType: TextInputType.url,
+                          textInputAction: TextInputAction.done,
+                          enabled: !_loading,
+                          onSubmitted: (_) => _saveApiUrl(),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       TextField(
                         controller: _usernameController,
                         decoration: const InputDecoration(
